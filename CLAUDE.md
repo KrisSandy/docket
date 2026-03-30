@@ -23,10 +23,10 @@ HomeDocket is a household management dashboard for tracking recurring expenses, 
 
 ## Current Sprint
 
-> **ACTIVE: Sprint 6 — Security & Backup** (`sprints/sprint-6-security-backup.md`)
+> **ACTIVE: Sprint 7 — Launch** (`sprints/sprint-7-launch.md`)
 > **Status: Not started**
 >
-> Sprint 5 — Category Expansion: **Complete** (267 tests passing, lint clean, TypeScript clean)
+> Sprint 6 — Security & Backup: **Complete** (333 tests passing, lint clean, TypeScript clean)
 
 When working on tasks:
 1. Open the current sprint file before starting work.
