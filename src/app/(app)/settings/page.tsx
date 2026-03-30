@@ -14,6 +14,7 @@ import {
   HardDrive,
   Upload,
   FileText,
+  MessageCircle,
 } from 'lucide-react';
 import { db } from '@/db/database';
 import { CategoryIcon } from '@/components/ui/category-icon';
@@ -481,6 +482,12 @@ export default function SettingsPage() {
 
       {/* ===== About ===== */}
       <SettingsSection title="About">
+        <SettingsRow
+          icon={<MessageCircle size={20} />}
+          label="Give Feedback"
+          description="Help us improve HomeDocket"
+          onClick={() => window.open('https://forms.gle/homedocket-feedback', '_blank')}
+        />
         <SettingsRow
           icon={<ExternalLink size={20} />}
           label="Privacy Policy"
