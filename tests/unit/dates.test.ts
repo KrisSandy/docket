@@ -45,11 +45,11 @@ describe('daysUntilDate', () => {
 
 describe('formatCountdown', () => {
   it('formats positive days', () => {
-    expect(formatCountdown(34)).toBe('34 days');
+    expect(formatCountdown(34)).toBe('in 34 days');
   });
 
   it('formats single day', () => {
-    expect(formatCountdown(1)).toBe('1 day');
+    expect(formatCountdown(1)).toBe('in 1 day');
   });
 
   it('formats today', () => {
@@ -57,11 +57,11 @@ describe('formatCountdown', () => {
   });
 
   it('formats single day ago', () => {
-    expect(formatCountdown(-1)).toBe('Expired 1 day ago');
+    expect(formatCountdown(-1)).toBe('overdue by 1 day');
   });
 
   it('formats multiple days ago', () => {
-    expect(formatCountdown(-5)).toBe('Expired 5 days ago');
+    expect(formatCountdown(-5)).toBe('overdue by 5 days');
   });
 });
 

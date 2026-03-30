@@ -13,14 +13,29 @@ export function daysUntilDate(date: Date): number {
 
 /**
  * Format a day count into a human-readable countdown string.
- * e.g., 34 → "34 days", 1 → "1 day", 0 → "Today", -5 → "Expired 5 days ago"
+ * e.g., 34 → "in 34 days", 1 → "in 1 day", 0 → "Today", -5 → "overdue by 5 days"
+ * For longer periods: 65 → "in 2 months", 400 → "in 1 year"
  */
 export function formatCountdown(days: number): string {
   if (days === 0) return 'Today';
-  if (days === 1) return '1 day';
-  if (days > 1) return `${days} days`;
-  if (days === -1) return 'Expired 1 day ago';
-  return `Expired ${Math.abs(days)} days ago`;
+
+  if (days > 0) {
+    if (days === 1) return 'in 1 day';
+    if (days < 60) return `in ${days} days`;
+    const months = Math.round(days / 30);
+    if (months < 12) return `in ${months} month${months === 1 ? '' : 's'}`;
+    const years = Math.round(days / 365);
+    return `in ${years} year${years === 1 ? '' : 's'}`;
+  }
+
+  // Overdue
+  const absDays = Math.abs(days);
+  if (absDays === 1) return 'overdue by 1 day';
+  if (absDays < 60) return `overdue by ${absDays} days`;
+  const months = Math.round(absDays / 30);
+  if (months < 12) return `overdue by ${months} month${months === 1 ? '' : 's'}`;
+  const years = Math.round(absDays / 365);
+  return `overdue by ${years} year${years === 1 ? '' : 's'}`;
 }
 
 /**
