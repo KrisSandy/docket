@@ -1,36 +1,68 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# HomeDocket
 
-## Getting Started
+A household management dashboard for tracking recurring expenses, contracts, and compliance deadlines. Built for Irish/EU households — tracks NCT dates, motor tax, insurance renewals, utility contracts, and more.
 
-First, run the development server:
+## Quick Start
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Tech Stack
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Framework:** Next.js 15 (App Router) + React 19 + TypeScript (strict)
+- **Styling:** Tailwind CSS v4 + shadcn/ui + tweakcn iOS theme
+- **Database:** Dexie.js (IndexedDB) — local-first, no backend
+- **Data Layer:** TanStack Query v5
+- **Native:** Capacitor 6 (iOS + Android)
+- **Testing:** Vitest + React Testing Library + Playwright
 
-## Learn More
+## Commands
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npm run dev           # Start dev server
+npm run build         # Production build
+npm run lint          # ESLint + TypeScript check
+npm run test          # Run unit + component tests (watch mode)
+npm run test:run      # Run tests once
+npm run test:coverage # Tests with coverage report
+npm run test:e2e      # Playwright E2E tests
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Project Structure
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+  app/
+    (marketing)/       # SEO pages (landing, privacy)
+    (app)/             # App screens (dashboard, item detail, add, settings, history)
+  components/
+    ui/                # Design system primitives (StatusDot, MetricRow, etc.)
+    dashboard/         # Dashboard components (StatusBanner, GlanceRow, UpcomingDeadlines)
+    items/             # Item detail components
+    layout/            # App shell, navigation
+  db/                  # Dexie.js schema, singleton, migrations, seed
+  hooks/               # Data hooks (useItems, useItemFields, useHistory)
+  lib/                 # Utilities (dates, currency, status, templates)
+  types/               # Shared TypeScript types
+  constants/           # Category metadata, defaults
+tests/
+  unit/                # Vitest unit tests
+  component/           # React Testing Library tests
+  e2e/                 # Playwright E2E tests
+```
 
-## Deploy on Vercel
+## Architecture
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+HomeDocket is local-first — all data lives in IndexedDB on the user's device. No backend server, no cloud sync, no accounts. The same codebase deploys as a web app (Vercel) and native iOS/Android apps (Capacitor).
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The data model uses an EAV (Entity-Attribute-Value) pattern: items belong to categories, and each item has flexible key-value fields defined by category templates. Five built-in categories ship with V1: Vehicle, Utilities, Housing, Connectivity, and Insurance.
+
+Notifications are the core feature. Native local notifications are scheduled in advance and fire even when the app is closed. Notification content is always generic (no PII on lock screen).
+
+## Status
+
+Sprint 1 (Foundation) complete. 95 tests passing. Build and lint clean.

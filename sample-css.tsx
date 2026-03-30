@@ -55,13 +55,6 @@
   --shadow-2xl: 0px 2px 4px 0px hsl(0 0% 0% / 0.25);
   --tracking-normal: -0.015em;
   --spacing: 0.25rem;
-
-  /* HomeDocket Status Tokens */
-  --status-ok: rgb(46, 204, 113);
-  --status-warning: rgb(245, 166, 35);
-  --status-urgent: rgb(231, 76, 60);
-  --status-expired: rgb(192, 57, 43);
-  --status-neutral: rgb(209, 209, 214);
 }
 
 .dark {
@@ -115,13 +108,6 @@
   --shadow-lg: 0px 3px 6px 0px hsl(0 0% 0% / 0.30), 0px 4px 6px -1px hsl(0 0% 0% / 0.30);
   --shadow-xl: 0px 3px 6px 0px hsl(0 0% 0% / 0.30), 0px 8px 10px -1px hsl(0 0% 0% / 0.30);
   --shadow-2xl: 0px 3px 6px 0px hsl(0 0% 0% / 0.75);
-
-  /* HomeDocket Status Tokens (Dark) */
-  --status-ok: rgb(46, 204, 113);
-  --status-warning: rgb(255, 179, 64);
-  --status-urgent: rgb(255, 69, 58);
-  --status-expired: rgb(255, 69, 58);
-  --status-neutral: rgb(56, 56, 58);
 }
 
 @theme inline {
@@ -157,12 +143,6 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
-  --color-status-ok: var(--status-ok);
-  --color-status-warning: var(--status-warning);
-  --color-status-urgent: var(--status-urgent);
-  --color-status-expired: var(--status-expired);
-  --color-status-neutral: var(--status-neutral);
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
