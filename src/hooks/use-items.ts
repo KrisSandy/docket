@@ -3,11 +3,13 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/db/database';
 import type { Item, ItemField } from '@/db/schema';
 import { getTemplateFields } from '@/lib/templates';
+import type { ServiceType } from '@/types';
 
 export interface CreateItemInput {
   categoryId: string;
   categoryName: string;
   title: string;
+  serviceType?: string | null;
 }
 
 export interface UpdateItemInput {
@@ -25,6 +27,7 @@ export function useItems() {
       categoryId: input.categoryId,
       title: input.title,
       status: 'active',
+      serviceType: input.serviceType ?? null,
       createdAt: now,
       updatedAt: now,
     };
@@ -32,8 +35,8 @@ export function useItems() {
     // Create the item
     await db.items.add(item);
 
-    // Create template fields
-    const templateFields = getTemplateFields(input.categoryName);
+    // Create template fields (service-type-aware for Utilities)
+    const templateFields = getTemplateFields(input.categoryName, (input.serviceType as ServiceType) ?? null);
     const fields: ItemField[] = templateFields.map((tf) => ({
       id: uuidv4(),
       itemId,

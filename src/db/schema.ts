@@ -15,6 +15,7 @@ export interface Item {
   categoryId: string;
   title: string;
   status: 'active' | 'archived';
+  serviceType: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -68,8 +69,8 @@ export class HomeDocketDB extends Dexie {
     super('homedocket');
 
     this.version(1).stores({
-      categories: 'id, name, sortOrder',
-      items: 'id, categoryId, status, updatedAt',
+      categories: 'id, name, sortOrder, isDefault',
+      items: 'id, categoryId, status, updatedAt, serviceType',
       itemFields: 'id, itemId, fieldKey, fieldType, [itemId+fieldKey]',
       reminders: 'id, itemId, fieldKey, [itemId+fieldKey]',
       history: 'id, itemId, changedAt',

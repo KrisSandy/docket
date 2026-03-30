@@ -9,6 +9,9 @@ interface FieldEditorProps {
   isRequired?: boolean;
   onChange: (value: string) => void;
   error?: string;
+  helperText?: string;
+  placeholder?: string;
+  options?: readonly string[];
 }
 
 export function FieldEditor({
@@ -18,6 +21,9 @@ export function FieldEditor({
   isRequired = false,
   onChange,
   error,
+  helperText,
+  placeholder,
+  options,
 }: FieldEditorProps) {
   const inputId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
@@ -25,6 +31,27 @@ export function FieldEditor({
     'w-full rounded-lg border border-border bg-background px-4 py-3 text-[15px] text-foreground transition-colors focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[44px]';
 
   const renderInput = () => {
+    // If options are provided, render a select dropdown regardless of fieldType
+    if (options && options.length > 0) {
+      return (
+        <select
+          id={inputId}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={`${commonClasses} appearance-none bg-[length:16px] bg-[right_12px_center] bg-no-repeat`}
+          required={isRequired}
+          style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")` }}
+        >
+          <option value="">{placeholder ?? 'Select...'}</option>
+          {options.map((opt) => (
+            <option key={opt} value={opt}>
+              {opt}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
     switch (fieldType) {
       case 'currency':
         return (
@@ -42,7 +69,7 @@ export function FieldEditor({
               onChange={(e) => onChange(e.target.value)}
               className={`${commonClasses} pl-8`}
               required={isRequired}
-              placeholder="0.00"
+              placeholder={placeholder ?? '0.00'}
             />
           </div>
         );
@@ -69,7 +96,7 @@ export function FieldEditor({
             onChange={(e) => onChange(e.target.value)}
             className={commonClasses}
             required={isRequired}
-            placeholder="0"
+            placeholder={placeholder ?? '0'}
           />
         );
 
@@ -87,7 +114,7 @@ export function FieldEditor({
               onChange={(e) => onChange(e.target.value)}
               className={`${commonClasses} pr-8`}
               required={isRequired}
-              placeholder="0"
+              placeholder={placeholder ?? '0'}
             />
             <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[15px] text-muted-foreground">
               %
@@ -104,7 +131,7 @@ export function FieldEditor({
             onChange={(e) => onChange(e.target.value)}
             className={commonClasses}
             required={isRequired}
-            placeholder="https://"
+            placeholder={placeholder ?? 'https://'}
           />
         );
 
@@ -118,6 +145,7 @@ export function FieldEditor({
             onChange={(e) => onChange(e.target.value)}
             className={commonClasses}
             required={isRequired}
+            placeholder={placeholder}
           />
         );
     }
@@ -130,6 +158,9 @@ export function FieldEditor({
         {isRequired && <span className="ml-1 text-destructive">*</span>}
       </label>
       {renderInput()}
+      {helperText && !error && (
+        <p className="mt-1 text-[13px] text-muted-foreground/70">{helperText}</p>
+      )}
       {error && (
         <p className="mt-1 text-[13px] text-destructive">{error}</p>
       )}

@@ -38,7 +38,7 @@
 - [x] Define TypeScript interfaces for all entities (Category, Item, ItemField, Reminder, HistoryEntry, AppSettings)
 - [x] Create Dexie DB class with version 1 schema (db/schema.ts)
 - [x] Create DB singleton (db/database.ts)
-- [x] Implement seed function for default categories (Vehicle, Utilities, Housing, Connectivity, Insurance)
+- [x] Implement seed function for default categories (Vehicle, Utilities, Housing, Insurance)
 - [ ] Write unit test: DB initializes without error
 - [ ] Write unit test: seed creates all 5 default categories
 - [ ] Write unit test: schema version is tracked correctly
@@ -60,14 +60,15 @@
 
 ## 5. Category Templates
 
-- [x] Define template data structure in lib/templates.ts
+- [x] Define template data structure in lib/templates.ts (support serviceType sub-types)
 - [x] Create Vehicle template (7 fields: Insurance Provider, Policy Number, Annual Premium, Motor Tax Due, NCT Date, Insurance Renewal, Insurer Contact)
-- [x] Create Utilities template (6 fields: Provider, Plan Name, Monthly Cost, Contract End, Standing Charge, Unit Cost)
+- [x] Create Utilities template with service types (common fields: Service Type, Provider, Plan Name, Monthly Cost, Contract End Date; type-specific fields for Electricity, Gas, Broadband, Mobile, TV/Streaming, Water)
 - [x] Create Housing template (4 fields: Mortgage Provider, Interest Rate, Monthly Payment, Fixed Term End)
-- [x] Create Connectivity template (4 fields: Provider, Speed Tier, Monthly Cost, Contract End)
 - [x] Create Insurance template (5 fields: Provider, Policy Type, Annual Premium, Renewal Date, Policy Number)
-- [x] Implement template-to-fields seeding on item creation
+- [x] Implement template-to-fields seeding on item creation (with service-type-specific fields for Utilities)
 - [x] Write unit test: creating item from Vehicle template generates all 7 fields
+- [x] Write unit test: creating Utilities item with "electricity" service type generates correct fields
+- [x] Write unit test: creating Utilities item with "broadband" service type generates correct fields
 - [x] Write unit test: creating item from each template generates correct field count and types
 
 ## 6. Core Utilities

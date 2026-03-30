@@ -12,6 +12,7 @@ import { FieldRenderer } from '@/components/items/field-renderer';
 import { StatusBadge } from '@/components/items/status-badge';
 import { ItemEditMode } from '@/components/items/item-edit-mode';
 import { HistoryTimeline } from '@/components/items/history-timeline';
+import { db } from '@/db/database';
 import type { Item, ItemField, HistoryEntry } from '@/db/schema';
 import type { DisplayStatus } from '@/types';
 import { daysUntilDate, getEarliestDeadline, formatDate } from '@/lib/dates';
@@ -35,6 +36,7 @@ export default function ItemDetailPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [categoryName, setCategoryName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = useCallback(async () => {
@@ -49,6 +51,10 @@ export default function ItemDetailPage() {
       router.push('/dashboard');
       return;
     }
+
+    // Look up category name for template field options
+    const category = await db.categories.get(itemData.categoryId);
+    setCategoryName(category?.name ?? '');
 
     setItem(itemData);
     setFields(fieldsData);
@@ -97,6 +103,7 @@ export default function ItemDetailPage() {
       <ItemEditMode
         item={item}
         fields={fields}
+        categoryName={categoryName}
         onSave={handleEditSave}
         onCancel={() => setIsEditing(false)}
       />

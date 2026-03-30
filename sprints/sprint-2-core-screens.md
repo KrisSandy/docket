@@ -63,13 +63,13 @@
 ## 4. Add Item Flow
 
 - [x] Build add item page — category selection (app/add/page.tsx)
-- [x] Display all 5 categories with icon and name
+- [x] Display all 4 categories with icon and name (Utilities shows service type picker next)
 - [x] Build template form page (app/add/[category]/page.tsx)
 - [x] Pre-populate form with template fields (empty values, correct types)
 - [x] Implement save: create item + seed fields + create default reminders
 - [x] Navigate to item detail on successful save
 - [x] Handle cancel (confirm discard if fields have been filled)
-- [ ] Write component test: category list shows all 5 categories — requires Dexie mock
+- [ ] Write component test: category list shows all 4 categories — requires Dexie mock
 - [ ] Write component test: Vehicle template form shows all 7 fields — requires Dexie mock
 - [ ] Write E2E test: full add flow — select Vehicle → fill fields → save → verify on dashboard — deferred to Playwright setup
 

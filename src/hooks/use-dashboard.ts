@@ -4,6 +4,7 @@ import type { ItemField, Category } from '@/db/schema';
 import type { DashboardItem, DisplayStatus } from '@/types';
 import { daysUntilDate, getEarliestDeadline, formatCountdown } from '@/lib/dates';
 import { calculateStatus, getStatusPriority } from '@/lib/status';
+import type { ServiceType } from '@/types';
 
 export interface DashboardCategory {
   id: string;
@@ -84,6 +85,7 @@ export function useDashboard() {
         earliestDeadline,
         daysUntilDeadline,
         keyDateLabel,
+        serviceType: (item.serviceType as ServiceType) ?? null,
       };
     });
 

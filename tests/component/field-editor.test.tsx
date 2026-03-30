@@ -95,4 +95,66 @@ describe('FieldEditor', () => {
     // onChange should be called with the typed value
     expect(onChange).toHaveBeenCalled();
   });
+
+  it('renders a select dropdown when options are provided', () => {
+    render(
+      <FieldEditor
+        label="Billing Frequency"
+        value=""
+        fieldType="text"
+        onChange={() => {}}
+        options={['Monthly', 'Bi-monthly', 'Quarterly', 'Annually']}
+      />
+    );
+    const select = screen.getByLabelText('Billing Frequency') as HTMLSelectElement;
+    expect(select.tagName).toBe('SELECT');
+    expect(screen.getByText('Monthly')).toBeInTheDocument();
+    expect(screen.getByText('Bi-monthly')).toBeInTheDocument();
+    expect(screen.getByText('Quarterly')).toBeInTheDocument();
+    expect(screen.getByText('Annually')).toBeInTheDocument();
+  });
+
+  it('has a default empty option in select dropdown', () => {
+    render(
+      <FieldEditor
+        label="Billing Frequency"
+        value=""
+        fieldType="text"
+        onChange={() => {}}
+        options={['Monthly', 'Quarterly']}
+      />
+    );
+    expect(screen.getByText('Select...')).toBeInTheDocument();
+  });
+
+  it('calls onChange with selected option value', async () => {
+    const user = userEvent.setup();
+    const onChange = vi.fn();
+    render(
+      <FieldEditor
+        label="Billing Frequency"
+        value=""
+        fieldType="text"
+        onChange={onChange}
+        options={['Monthly', 'Bi-monthly', 'Quarterly']}
+      />
+    );
+    const select = screen.getByLabelText('Billing Frequency');
+    await user.selectOptions(select, 'Monthly');
+    expect(onChange).toHaveBeenCalledWith('Monthly');
+  });
+
+  it('shows pre-selected value in dropdown', () => {
+    render(
+      <FieldEditor
+        label="Billing Frequency"
+        value="Quarterly"
+        fieldType="text"
+        onChange={() => {}}
+        options={['Monthly', 'Bi-monthly', 'Quarterly']}
+      />
+    );
+    const select = screen.getByLabelText('Billing Frequency') as HTMLSelectElement;
+    expect(select.value).toBe('Quarterly');
+  });
 });

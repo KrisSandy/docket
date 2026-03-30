@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Bell,
@@ -13,7 +13,11 @@ import {
   ChevronRight,
   HardDrive,
 } from 'lucide-react';
+import { db } from '@/db/database';
+import { CategoryIcon } from '@/components/ui/category-icon';
 import { useBackup } from '@/hooks/use-backup';
+import { useNotificationSettings } from '@/hooks/use-notification-settings';
+import { AndroidNotificationHelp } from '@/components/items/android-notification-help';
 
 interface SettingsRowProps {
   icon: React.ReactNode;
@@ -75,9 +79,30 @@ function SettingsSection({ title, children }: { title: string; children: React.R
 export default function SettingsPage() {
   const router = useRouter();
   const { exportData, deleteAllData } = useBackup();
+  const {
+    isEnabled: notificationsEnabled,
+    permissionState,
+    loading: notificationsLoading,
+    toggleNotifications,
+  } = useNotificationSettings();
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showDeleteFinalConfirm, setShowDeleteFinalConfirm] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [categorySummary, setCategorySummary] = useState<{ name: string; icon: string; count: number }[]>([]);
+
+  useEffect(() => {
+    const loadSummary = async () => {
+      const categories = await db.categories.orderBy('sortOrder').toArray();
+      const items = await db.items.where('status').equals('active').toArray();
+      const summary = categories.map((cat) => ({
+        name: cat.name,
+        icon: cat.icon,
+        count: items.filter((i) => i.categoryId === cat.id).length,
+      }));
+      setCategorySummary(summary);
+    };
+    loadSummary();
+  }, []);
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -111,14 +136,61 @@ export default function SettingsPage() {
 
       {/* Notifications */}
       <SettingsSection title="Notifications">
-        <SettingsRow
-          icon={<Bell size={20} />}
-          label="Notifications"
-          description="Coming soon"
-          disabled
-          trailing={<span className="text-[13px] text-muted-foreground">Sprint 4</span>}
-        />
+        <div className="flex w-full items-center gap-4 px-4 py-4 min-h-[44px]">
+          <div className="text-muted-foreground">
+            <Bell size={20} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[15px] text-foreground">Notifications</p>
+            <p className="text-[13px] text-muted-foreground mt-0.5">
+              {notificationsLoading
+                ? 'Loading...'
+                : notificationsEnabled
+                  ? 'Reminders are active'
+                  : 'Reminders are paused'}
+            </p>
+          </div>
+          <button
+            role="switch"
+            aria-checked={notificationsEnabled}
+            aria-label={notificationsEnabled ? 'Disable notifications' : 'Enable notifications'}
+            disabled={notificationsLoading}
+            onClick={() => toggleNotifications(!notificationsEnabled)}
+            className={`relative inline-flex h-[31px] w-[51px] shrink-0 items-center rounded-full transition-colors disabled:opacity-50 ${
+              notificationsEnabled ? 'bg-primary' : 'bg-muted-foreground/30'
+            }`}
+          >
+            <span
+              className={`inline-block h-[27px] w-[27px] transform rounded-full bg-white shadow-sm transition-transform ${
+                notificationsEnabled ? 'translate-x-[22px]' : 'translate-x-[2px]'
+              }`}
+            />
+          </button>
+        </div>
       </SettingsSection>
+
+      {/* Notification warnings */}
+      {!notificationsEnabled && !notificationsLoading && (
+        <div className="mx-4 mt-2 rounded-xl bg-amber-50 p-3 dark:bg-amber-950/30" role="alert">
+          <p className="text-[13px] text-amber-700 dark:text-amber-300">
+            All reminders are paused. You won&apos;t receive any deadline notifications until re-enabled.
+          </p>
+        </div>
+      )}
+
+      {notificationsEnabled && permissionState === 'denied' && (
+        <div className="mx-4 mt-2 rounded-xl bg-red-50 p-3 dark:bg-red-950/30" role="alert">
+          <p className="text-[13px] text-red-700 dark:text-red-300">
+            Notification permission is denied. Enable in your device settings to receive reminders.
+          </p>
+        </div>
+      )}
+
+      {notificationsEnabled && typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent) && (
+        <div className="mx-4 mt-2">
+          <AndroidNotificationHelp />
+        </div>
+      )}
 
       {/* Security */}
       <SettingsSection title="Security">
@@ -130,6 +202,23 @@ export default function SettingsPage() {
           trailing={<span className="text-[13px] text-muted-foreground">Sprint 5</span>}
         />
       </SettingsSection>
+
+      {/* Categories Summary */}
+      {categorySummary.length > 0 && (
+        <SettingsSection title="Categories">
+          {categorySummary.map((cat) => (
+            <div key={cat.name} className="flex w-full items-center gap-4 px-4 py-3 min-h-[44px]">
+              <div className="text-muted-foreground">
+                <CategoryIcon icon={cat.icon} size={20} />
+              </div>
+              <span className="flex-1 text-[15px] text-foreground">{cat.name}</span>
+              <span className="text-[13px] text-muted-foreground">
+                {cat.count} {cat.count === 1 ? 'item' : 'items'}
+              </span>
+            </div>
+          ))}
+        </SettingsSection>
+      )}
 
       {/* Data Management */}
       <SettingsSection title="Data">

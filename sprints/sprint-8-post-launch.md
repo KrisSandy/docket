@@ -1,8 +1,8 @@
-# Sprint 7 — Post-Launch Stabilization
+# Sprint 8 — Post-Launch Stabilization
 
-**Duration:** Weeks 13–14
+**Duration:** Weeks 15–16
 **Milestone:** M6 — Post-Launch Stable
-**Goal:** Monitor real-world usage, fix issues, add opt-in analytics, flesh out lighter categories.
+**Goal:** Monitor real-world usage, fix issues, add opt-in analytics, optimize based on feedback.
 **Estimated Hours:** 30–35
 
 ---
@@ -35,18 +35,7 @@
 - [ ] Write unit test: no events fire if consent is not given
 - [ ] Write unit test: events include correct properties, no PII
 
-## 3. Category Template Improvements
-
-Based on beta feedback, flesh out lighter categories:
-
-- [ ] Review beta feedback for category-specific requests
-- [ ] Update Connectivity template with common fields users requested
-- [ ] Update Insurance template with common fields users requested
-- [ ] Add any new default reminder intervals users found useful
-- [ ] Consider adding new category templates if strongly requested
-- [ ] Write unit tests for any new template fields
-
-## 4. Performance Optimization
+## 3. Performance Optimization
 
 - [ ] Audit dashboard load time — target <200ms
 - [ ] Audit item detail load time — target <100ms
@@ -57,7 +46,7 @@ Based on beta feedback, flesh out lighter categories:
 - [ ] Implement code splitting if any route is >100KB
 - [ ] Write performance benchmark tests (document baseline metrics)
 
-## 5. User Feedback Loop
+## 4. User Feedback Loop
 
 - [ ] Review all beta and public feedback
 - [ ] Categorize feedback: bugs / feature requests / UX issues / praise
@@ -66,7 +55,7 @@ Based on beta feedback, flesh out lighter categories:
 - [ ] Update FAQ or help text based on common user confusions
 - [ ] Publish app update with accumulated fixes
 
-## 6. Documentation & Handoff
+## 5. Documentation & Handoff
 
 - [ ] Update README with final architecture and setup instructions
 - [ ] Document all environment variables and configuration
@@ -78,11 +67,11 @@ Based on beta feedback, flesh out lighter categories:
 
 ---
 
-**Sprint 7 Definition of Done:**
+**Sprint 8 Definition of Done:**
 - [ ] Crash-free rate >99.5% for 7 consecutive days
 - [ ] No unresolved critical or high-priority bugs
 - [ ] Opt-in analytics collecting data from consenting users
-- [ ] Category templates updated based on real feedback
+- [ ] No category template gaps reported by users
 - [ ] Dashboard loads in <200ms consistently
 - [ ] All user feedback triaged and responded to
 - [ ] Technical documentation complete

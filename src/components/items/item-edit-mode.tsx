@@ -5,12 +5,14 @@ import { Plus, Save, X } from 'lucide-react';
 import { useItemFields } from '@/hooks/use-item-fields';
 import { FieldEditor } from '@/components/items/field-editor';
 import { AddCustomFieldDialog } from '@/components/items/add-custom-field-dialog';
+import { getTemplateFields } from '@/lib/templates';
 import type { Item, ItemField } from '@/db/schema';
-import type { FieldType } from '@/types';
+import type { FieldType, ServiceType } from '@/types';
 
 interface ItemEditModeProps {
   item: Item;
   fields: ItemField[];
+  categoryName?: string;
   onSave: () => void;
   onCancel: () => void;
 }
@@ -25,8 +27,18 @@ interface FieldState {
   isTemplateField: boolean;
 }
 
-export function ItemEditMode({ item, fields, onSave, onCancel }: ItemEditModeProps) {
+export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: ItemEditModeProps) {
   const { updateField, addCustomField } = useItemFields();
+
+  // Build a lookup of fieldKey → options from the template
+  const templateFields = categoryName
+    ? getTemplateFields(categoryName, (item.serviceType as ServiceType) ?? undefined)
+    : [];
+  const fieldOptionsMap = new Map(
+    templateFields
+      .filter((tf) => tf.options)
+      .map((tf) => [tf.fieldKey, tf.options])
+  );
 
   const [fieldStates, setFieldStates] = useState<FieldState[]>(() =>
     fields.map((f) => ({
@@ -155,6 +167,7 @@ export function ItemEditMode({ item, fields, onSave, onCancel }: ItemEditModePro
             isRequired={field.isTemplateField}
             onChange={(value) => handleFieldChange(field.id, value)}
             error={errors[field.id]}
+            options={fieldOptionsMap.get(field.fieldKey)}
           />
         ))}
       </div>

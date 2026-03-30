@@ -16,16 +16,17 @@ HomeDocket is a household management dashboard for tracking recurring expenses, 
 | Sprint 2 — Core Screens | `sprints/sprint-2-core-screens.md` | M2: Core App Functional |
 | Sprint 3 — Dashboard Polish | `sprints/sprint-3-dashboard-polish.md` | M2: Core App Functional |
 | Sprint 4 — Notifications | `sprints/sprint-4-notifications.md` | M3: Notifications Live |
-| Sprint 5 — Security & Backup | `sprints/sprint-5-security-backup.md` | M4: Secure & Backed Up |
-| Sprint 6 — Launch | `sprints/sprint-6-launch.md` | M5: Launch Ready |
-| Sprint 7 — Post-Launch | `sprints/sprint-7-post-launch.md` | M6: Post-Launch Stable |
+| Sprint 5 — Category Expansion | `sprints/sprint-5-category-expansion.md` | M3.5: All Categories Live |
+| Sprint 6 — Security & Backup | `sprints/sprint-6-security-backup.md` | M4: Secure & Backed Up |
+| Sprint 7 — Launch | `sprints/sprint-7-launch.md` | M5: Launch Ready |
+| Sprint 8 — Post-Launch | `sprints/sprint-8-post-launch.md` | M6: Post-Launch Stable |
 
 ## Current Sprint
 
-> **ACTIVE: Sprint 2 — Core Screens** (`sprints/sprint-2-core-screens.md`)
+> **ACTIVE: Sprint 6 — Security & Backup** (`sprints/sprint-6-security-backup.md`)
 > **Status: Not started**
 >
-> Sprint 1 — Foundation: **Complete** (95 tests passing, build green, lint clean)
+> Sprint 5 — Category Expansion: **Complete** (267 tests passing, lint clean, TypeScript clean)
 
 When working on tasks:
 1. Open the current sprint file before starting work.
@@ -104,7 +105,7 @@ tests/
 
 Uses EAV (Entity-Attribute-Value) pattern for flexible fields:
 
-- **categories** — 5 built-in templates (Vehicle, Utilities, Housing, Connectivity, Insurance)
+- **categories** — 4 built-in templates (Vehicle, Utilities, Housing, Insurance)
 - **items** — One per tracked service (e.g., "Car Insurance - Aviva")
 - **itemFields** — Key-value fields per item (template fields + user custom fields)
 - **reminders** — Configurable per item per date field (daysBefore: 60/30/14/7/1)
@@ -127,13 +128,12 @@ no deadline set        → ok
 
 ## Category Templates
 
-| Category | Depth | Key Date Fields |
-|----------|-------|-----------------|
-| Vehicle | Deep (7 fields) | NCT Date, Motor Tax Due, Insurance Renewal |
-| Utilities | Standard (6 fields) | Contract End Date |
-| Housing | Standard (4 fields) | Fixed Term End Date |
-| Connectivity | Light (4 fields) | Contract End Date |
-| Insurance | Light (5 fields) | Renewal Date |
+| Category | Service Types | Key Date Fields |
+|----------|--------------|-----------------|
+| Vehicle | Car, Motorbike | NCT Date, Motor Tax Due, Insurance Renewal |
+| Utilities | Electricity, Gas, Broadband, Mobile, TV/Streaming, Water | Contract End Date (+ type-specific fields) |
+| Housing | Mortgage, Rental | Fixed Term End Date, LPT Due |
+| Insurance | Home, Life, Health, Pet, Travel | Renewal Date |
 
 ## Coding Standards
 

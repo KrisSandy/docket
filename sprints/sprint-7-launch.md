@@ -1,6 +1,6 @@
-# Sprint 6 — Launch Preparation
+# Sprint 7 — Launch Preparation
 
-**Duration:** Weeks 11–12
+**Duration:** Weeks 13–14
 **Milestone:** M5 — Launch Ready
 **Goal:** SEO landing page live, store listings submitted, beta tested, bugs fixed.
 **Estimated Hours:** 35–40
@@ -107,7 +107,7 @@
 
 ---
 
-**Sprint 6 Definition of Done:**
+**Sprint 7 Definition of Done:**
 - [ ] Landing page live at production URL
 - [ ] 3 SEO blog posts published and indexed
 - [ ] iOS app submitted to App Store review

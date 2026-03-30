@@ -1,6 +1,6 @@
-# Sprint 5 — Security & Backup
+# Sprint 6 — Security & Backup
 
-**Duration:** Weeks 9–10
+**Duration:** Weeks 11–12
 **Milestone:** M4 — Secure & Backed Up
 **Goal:** Biometric auth, encrypted backup/restore, GDPR compliance complete.
 **Estimated Hours:** 35–40
@@ -93,7 +93,7 @@
 
 ---
 
-**Sprint 5 Definition of Done:**
+**Sprint 6 Definition of Done:**
 - [ ] Biometric lock works on iOS (FaceID + TouchID)
 - [ ] Biometric lock works on Android (Fingerprint)
 - [ ] Backup export + restore cycle works end-to-end with encryption

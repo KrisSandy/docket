@@ -13,7 +13,7 @@
 
 ## Milestone 2: Core App Functional
 **Target:** End of Sprint 3 (Week 6)
-**Definition of Done:** All five screens working (Dashboard, Item Detail, Add Item, Settings, Archive). User can add items across all 5 categories, view dashboard with status sorting, edit fields, and see change history. All interactions tested.
+**Definition of Done:** All five screens working (Dashboard, Item Detail, Add Item, Settings, Archive). User can add items across all 4 categories (with Utilities service types), view dashboard with status sorting, edit fields, and see change history. All interactions tested.
 
 ---
 
@@ -23,29 +23,35 @@
 
 ---
 
-## Milestone 4: Secure & Backed Up
+## Milestone 3.5: All Categories Live
 **Target:** End of Sprint 5 (Week 10)
+**Definition of Done:** All 4 category templates (with 6 Utilities service types) fully fleshed out with real-world Irish field coverage. Custom category creation working. Category filtering on dashboard. Template migration tested for existing items.
+
+---
+
+## Milestone 4: Secure & Backed Up
+**Target:** End of Sprint 6 (Week 12)
 **Definition of Done:** Biometric lock working on both platforms. Backup export/import with passphrase encryption working. Data export (JSON/CSV) for GDPR. Delete-all-data functional.
 
 ---
 
 ## Milestone 5: Launch Ready
-**Target:** End of Sprint 6 (Week 12)
+**Target:** End of Sprint 7 (Week 14)
 **Definition of Done:** SEO landing page live. Privacy policy published. App Store and Play Store listings submitted. Beta group testing complete. Critical bugs fixed. Full E2E regression passing.
 
 ---
 
 ## Milestone 6: Post-Launch Stable
-**Target:** End of Sprint 7 (Week 14)
-**Definition of Done:** Error monitoring active. Beta feedback triaged. Performance optimized. Remaining category templates fleshed out based on user feedback. App stable with >99.5% crash-free rate.
+**Target:** End of Sprint 8 (Week 16)
+**Definition of Done:** Error monitoring active. Beta feedback triaged. Performance optimized. App stable with >99.5% crash-free rate.
 
 ---
 
 ```
-Week:  1   2   3   4   5   6   7   8   9  10  11  12  13  14
-       ├───────┤───────┤───────┤───────┤───────┤───────┤───────┤
-Sprint:   S1      S2      S3      S4      S5      S6      S7
-       ├───────┤───────┤───────┤───────┤───────┤───────┤───────┤
-       M1      │       M2      │  M3   │  M4   │  M5   │  M6
-       Found.  │       Core    │ Notif │ Secur │Launch │ Stable
+Week:  1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16
+       ├───────┤───────┤───────┤───────┤───────┤───────┤───────┤───────┤
+Sprint:   S1      S2      S3      S4      S5      S6      S7      S8
+       ├───────┤───────┤───────┤───────┤───────┤───────┤───────┤───────┤
+       M1      │       M2      │  M3   │ M3.5  │  M4   │  M5   │  M6
+       Found.  │       Core    │ Notif │ Cats  │ Secur │Launch │ Stable
 ```

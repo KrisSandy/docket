@@ -1,27 +1,26 @@
 import type { DashboardItem } from '@/types';
+import { SERVICE_TYPE_LABELS } from '@/types';
 import { StatusDot } from '@/components/ui/status-dot';
 import { getStatusFontWeight } from '@/lib/status';
-import { Car, Zap, Home, Wifi, Shield, HelpCircle } from 'lucide-react';
+import { CategoryIcon } from '@/components/ui/category-icon';
+import { SERVICE_TYPE_ICONS } from '@/types';
 
 interface ItemCardProps {
   item: DashboardItem;
   onClick?: () => void;
 }
 
-const CATEGORY_ICON_MAP: Record<string, React.ReactNode> = {
-  car: <Car size={18} />,
-  zap: <Zap size={18} />,
-  home: <Home size={18} />,
-  wifi: <Wifi size={18} />,
-  shield: <Shield size={18} />,
-};
-
-function getCategoryIcon(icon: string): React.ReactNode {
-  return CATEGORY_ICON_MAP[icon] ?? <HelpCircle size={18} />;
-}
-
 export function ItemCard({ item, onClick }: ItemCardProps) {
   const fontWeight = getStatusFontWeight(item.displayStatus);
+
+  // Show service type icon if available, otherwise category icon
+  const displayIcon = item.serviceType
+    ? SERVICE_TYPE_ICONS[item.serviceType]
+    : item.categoryIcon;
+
+  const serviceLabel = item.serviceType
+    ? SERVICE_TYPE_LABELS[item.serviceType]
+    : null;
 
   return (
     <button
@@ -31,7 +30,7 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
     >
       <div className="flex items-start gap-3">
         <div className="mt-0.5 text-muted-foreground">
-          {getCategoryIcon(item.categoryIcon)}
+          <CategoryIcon icon={displayIcon} size={18} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
@@ -42,6 +41,7 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
           </div>
           <p className="mt-1 text-[13px] text-muted-foreground">
             {item.categoryName}
+            {serviceLabel && ` · ${serviceLabel}`}
           </p>
         </div>
         {item.keyDateLabel && (

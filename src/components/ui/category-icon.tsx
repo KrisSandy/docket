@@ -1,4 +1,7 @@
-import { Car, Zap, Home, Wifi, Shield, HelpCircle } from 'lucide-react';
+import {
+  Car, Zap, Home, Wifi, Shield, HelpCircle,
+  Flame, Smartphone, Tv, Droplets, Package,
+} from 'lucide-react';
 
 const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
   car: Car,
@@ -6,6 +9,11 @@ const ICON_MAP: Record<string, React.ComponentType<{ size?: number }>> = {
   home: Home,
   wifi: Wifi,
   shield: Shield,
+  flame: Flame,
+  smartphone: Smartphone,
+  tv: Tv,
+  droplets: Droplets,
+  package: Package,
 };
 
 interface CategoryIconProps {

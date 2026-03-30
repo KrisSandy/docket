@@ -59,15 +59,27 @@ The main screen is NOT a grid of cards. It is a **status-first** interface desig
 
 ### 2.2 Item Categories & Templates
 
-All five categories ship in V1. Vehicle is the deepest (most fields, best defaults). Others are lighter and will be fleshed out based on user feedback.
+Four categories ship in V1. Vehicle is the deepest (most fields, best defaults). Utilities is the broadest (covers multiple service types). Others are lighter and will be fleshed out based on user feedback.
 
-| Category | Template Fields | Status |
-|----------|----------------|--------|
-| **Vehicle** (primary) | Insurance Provider, Policy Number, Annual Premium, Motor Tax Due Date, NCT Date, Insurance Renewal Date, Insurer Contact | Deep — fully fleshed out |
-| **Utilities** | Provider, Plan Name, Monthly Cost, Contract End Date, Standing Charge, Unit Cost (kWh) | Standard |
-| **Housing** | Mortgage Provider, Interest Rate, Monthly Payment, Fixed Term End Date | Standard |
-| **Connectivity** | Provider, Speed Tier, Monthly Cost, Contract End Date | Light |
-| **Insurance** | Provider, Policy Type (Home/Life), Annual Premium, Renewal Date, Policy Number | Light |
+| Category | Service Types | Template Fields | Status |
+|----------|--------------|----------------|--------|
+| **Vehicle** (primary) | Car, Motorbike | Insurance Provider, Policy Number, Annual Premium, Motor Tax Due Date, NCT Date, Insurance Renewal Date, Insurer Contact | Deep — fully fleshed out |
+| **Utilities** | Electricity, Gas, Broadband, Mobile, TV/Streaming, Water | Service Type, Provider, Plan Name, Monthly Cost, Contract End Date + type-specific fields (see below) | Broad — multiple service types |
+| **Housing** | Mortgage, Rental | Mortgage Provider, Interest Rate, Monthly Payment, Fixed Term End Date | Standard |
+| **Insurance** | Home, Life, Health, Pet, Travel | Provider, Policy Type, Annual Premium, Renewal Date, Policy Number | Standard |
+
+**Utilities — Service-Specific Fields:**
+
+| Service Type | Additional Fields |
+|-------------|-------------------|
+| Electricity | Standing Charge, Unit Cost (kWh), MPRN, Billing Cycle |
+| Gas | Standing Charge, Unit Cost (kWh), GPRN, Billing Cycle |
+| Broadband | Download Speed, Upload Speed, Data Allowance |
+| Mobile | Data Allowance, Device on Contract, Device Payment Remaining |
+| TV/Streaming | Package Tier, Number of Channels/Services |
+| Water | Standing Charge (Irish Water is flat-rate currently) |
+
+When adding a Utilities item, the user first selects the service type, then gets the relevant fields. All Utilities items share common fields (Provider, Plan Name, Monthly Cost, Contract End Date) plus type-specific ones.
 
 **Custom fields:** Users can add arbitrary key-value fields to any item ("Landlord phone", "Meter reading date", etc.).
 
@@ -94,9 +106,8 @@ All five categories ship in V1. Vehicle is the deepest (most fields, best defaul
 
 **Default reminders per category:**
 - Vehicle: 60, 30, 14, 7 days before NCT/Tax/Insurance dates
-- Utilities: 30, 14 days before contract end
+- Utilities (all types): 30, 14 days before contract end
 - Housing: 90, 30 days before fixed term end
-- Connectivity: 30, 14 days before contract end
 - Insurance: 60, 30, 14 days before renewal
 
 **User-configurable:** Users can toggle preset intervals or add custom intervals per item.
@@ -303,7 +314,8 @@ export interface Category {
 export interface Item {
   id: string;           // uuid
   categoryId: string;
-  title: string;        // "Car Insurance - Aviva"
+  serviceType?: string; // e.g., "electricity", "gas", "broadband" for Utilities; "car", "motorbike" for Vehicle
+  title: string;        // "Electricity - SSE Airtricity"
   status: 'active' | 'archived';
   createdAt: Date;
   updatedAt: Date;
@@ -359,7 +371,7 @@ export class HomeDocketDB extends Dexie {
     // Version 1 — initial schema
     this.version(1).stores({
       categories: 'id, name, sortOrder',
-      items: 'id, categoryId, status, updatedAt',
+      items: 'id, categoryId, serviceType, status, updatedAt',
       itemFields: 'id, itemId, fieldKey, fieldType, [itemId+fieldKey]',
       reminders: 'id, itemId, fieldKey, [itemId+fieldKey]',
       history: 'id, itemId, changedAt',
