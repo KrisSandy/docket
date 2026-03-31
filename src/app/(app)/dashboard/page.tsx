@@ -5,14 +5,14 @@ import { useRouter } from 'next/navigation';
 import { Plus, LayoutList, List } from 'lucide-react';
 import { useDashboard, type DashboardData } from '@/hooks/use-dashboard';
 import { DashboardMetrics } from '@/components/dashboard/dashboard-metrics';
-import { Snackbar } from '@/components/ui/snackbar';
+import { StatusBanner } from '@/components/dashboard/status-banner';
 import { UpcomingDeadlines } from '@/components/dashboard/upcoming-deadlines';
 import { GlanceRow } from '@/components/dashboard/glance-row';
 import { ItemCard } from '@/components/dashboard/item-card';
 import { SectionHeader } from '@/components/ui/section-header';
 import { EmptyState } from '@/components/ui/empty-state';
 import { CategoryIcon } from '@/components/ui/category-icon';
-import { formatDate } from '@/lib/dates';
+import { LogoWordmark } from '@/components/ui/logo';
 import { db } from '@/db/database';
 
 type ViewMode = 'glance' | 'detail';
@@ -44,17 +44,12 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('detail');
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
-  const [lastChecked, setLastChecked] = useState<Date | null>(null);
-  const [showSnackbar, setShowSnackbar] = useState(false);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
       const dashboardData = await getDashboardData();
       setData(dashboardData);
-      setLastChecked(new Date());
-      if (dashboardData.attentionCount > 0) {
-        setShowSnackbar(true);
-      }
     } finally {
       setIsLoading(false);
     }
@@ -113,8 +108,9 @@ export default function DashboardPage() {
   if (!data || data.items.length === 0) {
     return (
       <div>
+        <LogoWordmark className="mb-8" />
         <EmptyState
-          message="No items tracked yet. Tap + to add your first."
+          message="Track your NCT, insurance, and utility deadlines — never miss a renewal again."
           action={
             <button
               type="button"
@@ -132,6 +128,18 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
+      {/* App Header */}
+      <LogoWordmark />
+
+      {/* Status Banner */}
+      {!bannerDismissed && (
+        <StatusBanner
+          attentionCount={data.attentionCount}
+          overallStatus={data.overallStatus}
+          onDismiss={data.overallStatus !== 'ok' ? () => setBannerDismissed(true) : undefined}
+        />
+      )}
+
       {/* Summary Metrics */}
       <DashboardMetrics
         items={data.items}
@@ -231,13 +239,6 @@ export default function DashboardPage() {
         )}
       </section>
 
-      {/* Last Checked */}
-      {lastChecked && (
-        <p className="text-center text-[13px] text-muted-foreground pb-2">
-          Last checked {formatDate(lastChecked)}
-        </p>
-      )}
-
       {/* Floating Add Button */}
       <button
         type="button"
@@ -248,16 +249,6 @@ export default function DashboardPage() {
         <Plus size={28} strokeWidth={2} />
       </button>
 
-      {/* Attention Snackbar */}
-      {data.attentionCount > 0 && (
-        <Snackbar
-          message={`${data.attentionCount} item${data.attentionCount === 1 ? '' : 's'} need${data.attentionCount === 1 ? 's' : ''} attention`}
-          status={data.overallStatus}
-          duration={5000}
-          visible={showSnackbar}
-          onDismiss={() => setShowSnackbar(false)}
-        />
-      )}
     </div>
   );
 }

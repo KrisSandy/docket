@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <!-- Shield — light blue fill with solid blue stroke -->
+  <path
+    d="M256 52L80 148v120c0 112 74 212 176 236 102-24 176-124 176-236V148L256 52z"
+    fill="#0073FF"
+    fill-opacity="0.10"
+    stroke="#0073FF"
+    stroke-width="18"
+    stroke-linejoin="round"
+  />
+
+  <!-- House — centered inside the shield -->
+  <g stroke="#0073FF" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <!-- Roof peak -->
+    <path d="M164 280l92-80 92 80" />
+    <!-- Walls -->
+    <path d="M186 268v88h140v-88" />
+    <!-- Door -->
+    <rect x="232" y="310" width="48" height="46" rx="4" />
+  </g>
+</svg>

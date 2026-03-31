@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Fingerprint, ShieldAlert } from 'lucide-react';
+import { Fingerprint } from 'lucide-react';
+import { LogoIcon } from '@/components/ui/logo';
 
 interface LockScreenProps {
   onUnlock: () => Promise<boolean>;
@@ -38,7 +39,7 @@ export function LockScreen({ onUnlock }: LockScreenProps) {
       <div className="flex flex-col items-center gap-6 px-8 text-center">
         {/* App icon / branding */}
         <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10">
-          <ShieldAlert size={40} className="text-primary" />
+          <LogoIcon size={48} className="text-primary" />
         </div>
 
         <div>
