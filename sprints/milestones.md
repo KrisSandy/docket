@@ -35,6 +35,12 @@
 
 ---
 
+## Milestone 4.5: Action Management Live
+**Target:** Mid-Sprint 7 window (Week 12.5)
+**Definition of Done:** Users can tap the attention banner to review urgent items in a bottom sheet. Renew action updates deadline + reschedules reminders. Dismiss action snoozes items for configurable period. All actions tracked in history timeline. Dismissed items indicated on dashboard.
+
+---
+
 ## Milestone 5: Launch Ready
 **Target:** End of Sprint 7 (Week 14)
 **Definition of Done:** SEO landing page live. Privacy policy published. App Store and Play Store listings submitted. Beta group testing complete. Critical bugs fixed. Full E2E regression passing.
@@ -48,10 +54,10 @@
 ---
 
 ```
-Week:  1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16
-       ├───────┤───────┤───────┤───────┤───────┤───────┤───────┤───────┤
-Sprint:   S1      S2      S3      S4      S5      S6      S7      S8
-       ├───────┤───────┤───────┤───────┤───────┤───────┤───────┤───────┤
-       M1      │       M2      │  M3   │ M3.5  │  M4   │  M5   │  M6
-       Found.  │       Core    │ Notif │ Cats  │ Secur │Launch │ Stable
+Week:  1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17
+       ├───────┤───────┤───────┤───────┤───────┤───────┤────┤──────┤───────┤
+Sprint:   S1      S2      S3      S4      S5      S6    S6.5   S7      S8
+       ├───────┤───────┤───────┤───────┤───────┤───────┤────┤──────┤───────┤
+       M1      │       M2      │  M3   │ M3.5  │  M4  M4.5│  M5   │  M6
+       Found.  │       Core    │ Notif │ Cats  │ Secur│Acts│Launch │ Stable
 ```

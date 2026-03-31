@@ -187,7 +187,7 @@ export const CARD_SHORT_LABELS: Record<string, string> = {
 export const CATEGORY_KEY_FIELDS: Record<string, string[]> = {
   Vehicle: ['nct_date', 'motor_tax_due', 'insurance_renewal', 'annual_premium'],
   Utilities: ['contract_end'],
-  Housing: ['mortgage_rent_amount', 'lpt_due_date', 'fixed_term_end', 'interest_rate'],
+  Housing: ['lpt_due_date', 'fixed_term_end', 'interest_rate'],
   Insurance: ['annual_premium', 'renewal_date', 'cover_amount'],
 };
 

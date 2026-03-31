@@ -79,15 +79,15 @@ export function ItemCard({ item, onClick, style }: ItemCardProps) {
 
         {/* Key fields */}
         {keyFields.length > 0 && (
-          <div className="mt-2 grid gap-1">
+          <div className="mt-2 grid gap-1.5">
             {keyFields.map((field) => (
-              <div key={field.label} className="flex items-baseline justify-between gap-2">
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70 shrink-0">
+              <div key={field.label}>
+                <span className="text-[10px] text-muted-foreground/70">
                   {field.label}
                 </span>
-                <span className="text-[12px] font-medium text-foreground/80 text-right">
+                <p className="text-[12px] font-medium text-foreground/80 leading-tight">
                   {formatKeyFieldValue(field)}
-                </span>
+                </p>
               </div>
             ))}
           </div>

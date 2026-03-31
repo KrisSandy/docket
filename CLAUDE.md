@@ -18,12 +18,13 @@ HomeDocket is a household management dashboard for tracking recurring expenses, 
 | Sprint 4 — Notifications | `sprints/sprint-4-notifications.md` | M3: Notifications Live |
 | Sprint 5 — Category Expansion | `sprints/sprint-5-category-expansion.md` | M3.5: All Categories Live |
 | Sprint 6 — Security & Backup | `sprints/sprint-6-security-backup.md` | M4: Secure & Backed Up |
+| Sprint 6.5 — Action Review | `sprints/sprint-6.5-action-review.md` | M4.5: Action Management Live |
 | Sprint 7 — Launch | `sprints/sprint-7-launch.md` | M5: Launch Ready |
 | Sprint 8 — Post-Launch | `sprints/sprint-8-post-launch.md` | M6: Post-Launch Stable |
 
 ## Current Sprint
 
-> **ACTIVE: Sprint 7 — Launch** (`sprints/sprint-7-launch.md`)
+> **ACTIVE: Sprint 6.5 — Action Review & Completion** (`sprints/sprint-6.5-action-review.md`)
 > **Status: Not started**
 >
 > Sprint 6 — Security & Backup: **Complete** (333 tests passing, lint clean, TypeScript clean)
