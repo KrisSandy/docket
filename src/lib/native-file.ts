@@ -5,9 +5,15 @@
 
 /**
  * Check if running in a native Capacitor environment.
+ * Must use Capacitor.isNativePlatform() — checking for window.Capacitor
+ * alone is insufficient because the Capacitor JS runtime is bundled
+ * in web builds too, causing native-only APIs (Filesystem, Share) to
+ * hit their web fallbacks and produce broken relative URLs.
  */
 function isNative(): boolean {
-  return typeof window !== 'undefined' && 'Capacitor' in window;
+  if (typeof window === 'undefined' || !('Capacitor' in window)) return false;
+  const cap = (window as unknown as { Capacitor: { isNativePlatform?: () => boolean } }).Capacitor;
+  return typeof cap.isNativePlatform === 'function' && cap.isNativePlatform();
 }
 
 /**
