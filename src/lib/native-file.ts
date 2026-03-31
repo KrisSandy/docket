@@ -74,7 +74,7 @@ export function downloadInBrowser(
  * On web: returns null (HTML file input should be used instead).
  */
 export async function pickFileNative(
-  _extensions: string[]
+  _extensions: string[] // eslint-disable-line @typescript-eslint/no-unused-vars
 ): Promise<{ content: string; name: string } | null> {
   if (!isNative()) return null;
 

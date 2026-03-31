@@ -13,15 +13,6 @@ vi.mock('@/lib/notifications', () => ({
   cancelAllNotifications: (...args: unknown[]) => mockCancelAllNotifications(...args),
 }));
 
-// Store mock data outside factory for access in tests
-const mockReminderData = [
-  { id: 'rem-1', itemId: 'item-1', fieldKey: 'nct_date', daysBefore: 30, isEnabled: true, lastNotifiedAt: null, createdAt: new Date() },
-  { id: 'rem-2', itemId: 'item-1', fieldKey: 'nct_date', daysBefore: 7, isEnabled: true, lastNotifiedAt: null, createdAt: new Date() },
-];
-
-const mockDateFieldData = [
-  { id: 'f-1', itemId: 'item-1', fieldKey: 'nct_date', fieldValue: '2026-09-15', fieldType: 'date', label: 'NCT Date', isTemplateField: true, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() },
-];
 
 vi.mock('@/db/database', () => {
   const reminderData = [
