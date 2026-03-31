@@ -36,7 +36,7 @@ export function ReviewSheet({ open, onOpenChange, items, onRenew, onDismiss }: R
 
   const handleItemClick = (id: string) => {
     onOpenChange(false);
-    router.push(`/item/${id}`);
+    router.push(`/item?id=${id}`);
   };
 
   return (

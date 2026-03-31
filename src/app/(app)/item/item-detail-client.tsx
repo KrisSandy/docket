@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Pencil, Archive, Clock, History, ChevronDown, ChevronUp, BellOff } from 'lucide-react';
 import { useItems } from '@/hooks/use-items';
 import { useItemFields } from '@/hooks/use-item-fields';
@@ -19,9 +19,9 @@ import { daysUntilDate, getEarliestDeadline, formatDate } from '@/lib/dates';
 import { calculateStatus } from '@/lib/status';
 
 export default function ItemDetailPage() {
-  const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const id = params.id as string;
+  const id = searchParams.get('id') ?? '';
 
   const { getItem, updateItem, clearDismissal } = useItems();
   const { getFieldsForItem } = useItemFields();

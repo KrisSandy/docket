@@ -136,7 +136,7 @@ export async function decryptData(encryptedJson: string, passphrase: string): Pr
     const decrypted = await crypto.subtle.decrypt(
       { name: ALGORITHM, iv: iv as BufferSource },
       key,
-      ciphertext
+      ciphertext as BufferSource
     );
 
     const decoder = new TextDecoder();

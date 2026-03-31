@@ -29,7 +29,7 @@ export function useNotificationInit() {
     const init = async () => {
       // 1. Register tap handler — routes notification taps to item detail
       registerNotificationTapHandler((itemId: string) => {
-        router.push(`/item/${itemId}`);
+        router.push(`/item?id=${itemId}`);
       });
 
       // 2. Check if notifications are enabled before rescheduling

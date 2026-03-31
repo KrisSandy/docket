@@ -94,7 +94,7 @@ export default function DashboardPage() {
   const { getItemStyle } = useStaggerAnimation();
 
   const handleItemClick = (id: string) => {
-    router.push(`/item/${id}`);
+    router.push(`/item?id=${id}`);
   };
 
   const handleAddClick = () => {

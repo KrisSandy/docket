@@ -2,6 +2,7 @@ import type { NextConfig } from 'next';
 import { withSentryConfig } from '@sentry/nextjs';
 
 const nextConfig: NextConfig = {
+  output: 'export',
   allowedDevOrigins: ['192.168.1.3'],
 };
 

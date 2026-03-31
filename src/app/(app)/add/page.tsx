@@ -30,7 +30,7 @@ export default function AddItemPage() {
   }, []);
 
   const handleCategorySelect = (category: Category) => {
-    router.push(`/add/${category.id}?name=${encodeURIComponent(category.name)}`);
+    router.push(`/add/form?categoryId=${category.id}&name=${encodeURIComponent(category.name)}`);
   };
 
   const handleCreateCustom = async () => {
@@ -68,7 +68,7 @@ export default function AddItemPage() {
     setCustomError('');
 
     // Navigate to add item with the new category
-    router.push(`/add/${newCategory.id}?name=${encodeURIComponent(newCategory.name)}`);
+    router.push(`/add/form?categoryId=${newCategory.id}&name=${encodeURIComponent(newCategory.name)}`);
   };
 
   return (

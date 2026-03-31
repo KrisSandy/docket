@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams, useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { Save } from 'lucide-react';
 import { useItems } from '@/hooks/use-items';
 import { useReminders } from '@/hooks/use-reminders';
@@ -24,11 +24,10 @@ interface FormFieldState {
 }
 
 export default function AddItemFormPage() {
-  const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const categoryId = params.categoryId as string;
+  const categoryId = searchParams.get('categoryId') ?? '';
   const categoryName = searchParams.get('name') ?? '';
 
   const { createItem } = useItems();
@@ -116,7 +115,7 @@ export default function AddItemFormPage() {
       await createDefaultReminders(itemId, categoryName);
 
       // Navigate to the new item
-      router.push(`/item/${itemId}`);
+      router.push(`/item?id=${itemId}`);
     } finally {
       setIsSaving(false);
     }
