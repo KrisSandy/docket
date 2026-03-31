@@ -10,7 +10,6 @@ import { useItems } from '@/hooks/use-items';
 import { useItemFields } from '@/hooks/use-item-fields';
 import { useReminders } from '@/hooks/use-reminders';
 import { DashboardMetrics } from '@/components/dashboard/dashboard-metrics';
-import { StatusBanner } from '@/components/dashboard/status-banner';
 import { UpcomingDeadlines } from '@/components/dashboard/upcoming-deadlines';
 import { ReviewSheet } from '@/components/dashboard/review-sheet';
 import { RenewDialog } from '@/components/dashboard/renew-dialog';
@@ -54,7 +53,6 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('detail');
   const [isLoading, setIsLoading] = useState(true);
   const [activeCategoryId, setActiveCategoryId] = useState<string | null>(null);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
   const [reviewSheetOpen, setReviewSheetOpen] = useState(false);
   const [renewDialogOpen, setRenewDialogOpen] = useState(false);
   const [dismissDialogOpen, setDismissDialogOpen] = useState(false);
@@ -252,20 +250,11 @@ export default function DashboardPage() {
       {/* App Header */}
       <LogoWordmark />
 
-      {/* Status Banner */}
-      {!bannerDismissed && (
-        <StatusBanner
-          attentionCount={data.attentionCount}
-          overallStatus={data.overallStatus}
-          onClick={data.overallStatus !== 'ok' ? handleReviewOpen : undefined}
-          onDismiss={data.overallStatus !== 'ok' ? () => setBannerDismissed(true) : undefined}
-        />
-      )}
-
       {/* Summary Metrics */}
       <DashboardMetrics
         items={data.items}
         attentionCount={data.attentionCount}
+        onAttentionTap={handleReviewOpen}
       />
 
       {/* Upcoming Deadlines */}

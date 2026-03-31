@@ -80,7 +80,7 @@ export function ReviewSheet({ open, onOpenChange, items, onRenew, onDismiss }: R
         </div>
 
         {/* Item list */}
-        <div className="overflow-y-auto px-4 pb-8" style={{ maxHeight: 'calc(85vh - 100px)' }}>
+        <div className="overflow-y-auto px-4 pb-24" style={{ maxHeight: 'calc(85vh - 100px)' }}>
           {items.length === 0 ? (
             <div className="py-12 text-center">
               <p className="text-[15px] text-muted-foreground">All caught up!</p>

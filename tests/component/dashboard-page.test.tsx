@@ -136,10 +136,12 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
 
-    // StatusBanner should show the attention message
-    expect(await screen.findByText('1 item needs attention')).toBeInTheDocument();
-    // "Tap to review" hint should be visible
-    expect(screen.getByText('Tap to review')).toBeInTheDocument();
+    // DashboardMetrics should show the attention count
+    const needAction = await screen.findByText('Need action');
+    expect(needAction).toBeInTheDocument();
+    // The attention count value is a sibling within the same metric card
+    const metricCard = needAction.closest('[class*="rounded-xl"]')!;
+    expect(metricCard).toHaveTextContent('1');
   });
 
   it('renders items sorted by status priority', async () => {

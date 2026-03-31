@@ -58,6 +58,19 @@ export function StatusBanner({ attentionCount, overallStatus, onClick, onDismiss
           <p className={`flex-1 text-[15px] font-semibold ${statusTextClasses[overallStatus]}`}>
             {message}
           </p>
+          {onDismiss && (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDismiss();
+              }}
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-black/10 dark:hover:bg-white/10"
+              aria-label="Dismiss"
+            >
+              <X size={16} className="text-muted-foreground" />
+            </button>
+          )}
         </div>
       </div>
     );
