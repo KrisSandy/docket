@@ -16,6 +16,7 @@ const mockItem: DashboardItem = {
   daysUntilDeadline: 25,
   keyDateLabel: '25 days',
   serviceType: null,
+  dismissedUntil: null,
 };
 
 describe('ItemCard', () => {

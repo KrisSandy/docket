@@ -16,6 +16,7 @@ export interface Item {
   title: string;
   status: 'active' | 'archived';
   serviceType: string | null;
+  dismissedUntil: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,12 +44,15 @@ export interface Reminder {
   createdAt: Date;
 }
 
+export type HistoryChangeType = 'edit' | 'renewal' | 'dismissal';
+
 export interface HistoryEntry {
   id: string;
   itemId: string;
   fieldKey: string;
   oldValue: string | null;
   newValue: string | null;
+  changeType: HistoryChangeType;
   changedAt: Date;
 }
 
@@ -75,6 +79,25 @@ export class HomeDocketDB extends Dexie {
       reminders: 'id, itemId, fieldKey, [itemId+fieldKey]',
       history: 'id, itemId, changedAt',
       settings: 'key',
+    });
+
+    // V2: Add dismissedUntil to items, changeType to history
+    this.version(2).stores({
+      items: 'id, categoryId, status, updatedAt, serviceType, dismissedUntil',
+    }).upgrade((tx) => {
+      // Set defaults for existing records
+      return Promise.all([
+        tx.table('items').toCollection().modify((item) => {
+          if (item.dismissedUntil === undefined) {
+            item.dismissedUntil = null;
+          }
+        }),
+        tx.table('history').toCollection().modify((entry) => {
+          if (entry.changeType === undefined) {
+            entry.changeType = 'edit';
+          }
+        }),
+      ]);
     });
   }
 }

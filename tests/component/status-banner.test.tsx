@@ -30,15 +30,15 @@ describe('StatusBanner', () => {
   });
 
   it('applies ok background class', () => {
-    render(<StatusBanner attentionCount={0} overallStatus="ok" />);
-    const button = screen.getByRole('button');
-    expect(button.className).toContain('bg-[var(--status-ok)]');
+    const { container } = render(<StatusBanner attentionCount={0} overallStatus="ok" />);
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.className).toContain('bg-[var(--status-ok)]');
   });
 
   it('applies urgent background class', () => {
-    render(<StatusBanner attentionCount={2} overallStatus="urgent" />);
-    const button = screen.getByRole('button');
-    expect(button.className).toContain('bg-[var(--status-urgent)]');
+    const { container } = render(<StatusBanner attentionCount={2} overallStatus="urgent" />);
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.className).toContain('bg-[var(--status-urgent)]');
   });
 
   it('calls onClick when clicked', async () => {
@@ -50,9 +50,9 @@ describe('StatusBanner', () => {
   });
 
   it('has minimum 44px height touch target', () => {
-    render(<StatusBanner attentionCount={0} overallStatus="ok" />);
-    const button = screen.getByRole('button');
-    expect(button.className).toContain('min-h-[44px]');
+    const { container } = render(<StatusBanner attentionCount={0} overallStatus="ok" />);
+    const wrapper = container.firstElementChild as HTMLElement;
+    expect(wrapper.className).toContain('min-h-[44px]');
   });
 
   it('renders compact layout for ok status', () => {

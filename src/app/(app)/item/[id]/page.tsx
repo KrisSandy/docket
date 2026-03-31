@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Pencil, Archive, Clock, History, ChevronDown, ChevronUp } from 'lucide-react';
+import { Pencil, Archive, Clock, History, ChevronDown, ChevronUp, BellOff } from 'lucide-react';
 import { useItems } from '@/hooks/use-items';
 import { useItemFields } from '@/hooks/use-item-fields';
 import { useReminders, type ReminderSummary } from '@/hooks/use-reminders';
@@ -23,7 +23,7 @@ export default function ItemDetailPage() {
   const router = useRouter();
   const id = params.id as string;
 
-  const { getItem, updateItem } = useItems();
+  const { getItem, updateItem, clearDismissal } = useItems();
   const { getFieldsForItem } = useItemFields();
   const { getReminderSummary } = useReminders();
   const { getHistoryForItem } = useHistory();
@@ -61,13 +61,20 @@ export default function ItemDetailPage() {
     setReminderSummaries(reminders);
     setHistoryEntries(history);
 
-    // Calculate display status
-    const dateValues = fieldsData
-      .filter((f) => f.fieldType === 'date')
-      .map((f) => f.fieldValue);
-    const earliest = getEarliestDeadline(dateValues);
-    const days = earliest ? daysUntilDate(earliest) : null;
-    setDisplayStatus(calculateStatus(days));
+    // Calculate display status (respect dismissal)
+    const isDismissed = itemData.dismissedUntil !== null
+      && itemData.dismissedUntil !== undefined
+      && itemData.dismissedUntil > new Date();
+    if (isDismissed) {
+      setDisplayStatus('ok');
+    } else {
+      const dateValues = fieldsData
+        .filter((f) => f.fieldType === 'date')
+        .map((f) => f.fieldValue);
+      const earliest = getEarliestDeadline(dateValues);
+      const days = earliest ? daysUntilDate(earliest) : null;
+      setDisplayStatus(calculateStatus(days));
+    }
 
     setIsLoading(false);
   }, [id, getItem, getFieldsForItem, getReminderSummary, getHistoryForItem, router]);
@@ -125,6 +132,26 @@ export default function ItemDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Dismissed banner */}
+      {item.dismissedUntil && item.dismissedUntil > new Date() && (
+        <div className="mt-4 flex items-center gap-3 rounded-xl bg-muted/50 px-4 py-3">
+          <BellOff size={16} className="shrink-0 text-muted-foreground" />
+          <p className="flex-1 text-[13px] text-muted-foreground">
+            Snoozed {item.dismissedUntil.getFullYear() >= 2099 ? 'until you act' : `until ${formatDate(item.dismissedUntil)}`}
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              await clearDismissal(item.id);
+              loadData();
+            }}
+            className="min-h-[36px] rounded-lg bg-primary/10 px-3 py-1.5 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/20"
+          >
+            Remove
+          </button>
+        </div>
+      )}
 
       {/* Action Buttons */}
       <div className="mt-4 flex gap-3">

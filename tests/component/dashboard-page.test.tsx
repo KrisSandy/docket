@@ -61,7 +61,7 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     expect(
-      await screen.findByText('No items tracked yet. Tap + to add your first.')
+      await screen.findByText(/Track your NCT, insurance, and utility deadlines/)
     ).toBeInTheDocument();
   });
 
@@ -136,10 +136,10 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
 
-    // Snackbar should show the attention message
+    // StatusBanner should show the attention message
     expect(await screen.findByText('1 item needs attention')).toBeInTheDocument();
-    // Snackbar uses role="status"
-    expect(screen.getByRole('status')).toBeInTheDocument();
+    // "Tap to review" hint should be visible
+    expect(screen.getByText('Tap to review')).toBeInTheDocument();
   });
 
   it('renders items sorted by status priority', async () => {

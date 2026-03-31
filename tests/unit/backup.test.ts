@@ -117,7 +117,7 @@ describe('backup utilities', () => {
           { id: 'cat-1', name: 'Vehicle', icon: 'car', sortOrder: 0, isDefault: true, createdAt: new Date(), updatedAt: new Date() },
         ],
         items: [
-          { id: 'item-1', categoryId: 'cat-1', title: 'My Car', status: 'active', serviceType: 'car', createdAt: new Date(), updatedAt: new Date() },
+          { id: 'item-1', categoryId: 'cat-1', title: 'My Car', status: 'active', serviceType: 'car', dismissedUntil: null, createdAt: new Date(), updatedAt: new Date() },
         ],
         itemFields: [
           { id: 'f1', itemId: 'item-1', fieldKey: 'nct_date', fieldValue: '2026-06-15', fieldType: 'date', label: 'NCT Date', isTemplateField: true, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() },
@@ -137,8 +137,8 @@ describe('backup utilities', () => {
     it('generates one row per item', () => {
       const data = makeBackupData({
         items: [
-          { id: 'item-1', categoryId: 'cat-1', title: 'Item 1', status: 'active', serviceType: null, createdAt: new Date(), updatedAt: new Date() },
-          { id: 'item-2', categoryId: 'cat-1', title: 'Item 2', status: 'active', serviceType: null, createdAt: new Date(), updatedAt: new Date() },
+          { id: 'item-1', categoryId: 'cat-1', title: 'Item 1', status: 'active', serviceType: null, dismissedUntil: null, createdAt: new Date(), updatedAt: new Date() },
+          { id: 'item-2', categoryId: 'cat-1', title: 'Item 2', status: 'active', serviceType: null, dismissedUntil: null, createdAt: new Date(), updatedAt: new Date() },
         ],
       });
 
@@ -153,7 +153,7 @@ describe('backup utilities', () => {
           { id: 'cat-1', name: 'Test', icon: 'test', sortOrder: 0, isDefault: true, createdAt: new Date(), updatedAt: new Date() },
         ],
         items: [
-          { id: 'item-1', categoryId: 'cat-1', title: 'Test Item', status: 'active', serviceType: null, createdAt: new Date(), updatedAt: new Date() },
+          { id: 'item-1', categoryId: 'cat-1', title: 'Test Item', status: 'active', serviceType: null, dismissedUntil: null, createdAt: new Date(), updatedAt: new Date() },
         ],
         itemFields: [
           { id: 'f1', itemId: 'item-1', fieldKey: 'provider', fieldValue: 'Acme Corp', fieldType: 'text', label: 'Provider', isTemplateField: true, sortOrder: 0, createdAt: new Date(), updatedAt: new Date() },
@@ -167,7 +167,7 @@ describe('backup utilities', () => {
     it('escapes CSV values containing commas', () => {
       const data = makeBackupData({
         items: [
-          { id: 'item-1', categoryId: 'cat-1', title: 'Item, with comma', status: 'active', serviceType: null, createdAt: new Date(), updatedAt: new Date() },
+          { id: 'item-1', categoryId: 'cat-1', title: 'Item, with comma', status: 'active', serviceType: null, dismissedUntil: null, createdAt: new Date(), updatedAt: new Date() },
         ],
       });
 
@@ -178,7 +178,7 @@ describe('backup utilities', () => {
     it('escapes CSV values containing double quotes', () => {
       const data = makeBackupData({
         items: [
-          { id: 'item-1', categoryId: 'cat-1', title: 'Item "quoted"', status: 'active', serviceType: null, createdAt: new Date(), updatedAt: new Date() },
+          { id: 'item-1', categoryId: 'cat-1', title: 'Item "quoted"', status: 'active', serviceType: null, dismissedUntil: null, createdAt: new Date(), updatedAt: new Date() },
         ],
       });
 
@@ -189,7 +189,7 @@ describe('backup utilities', () => {
     it('handles items with no fields', () => {
       const data = makeBackupData({
         items: [
-          { id: 'item-1', categoryId: 'cat-1', title: 'No Fields', status: 'active', serviceType: null, createdAt: new Date(), updatedAt: new Date() },
+          { id: 'item-1', categoryId: 'cat-1', title: 'No Fields', status: 'active', serviceType: null, dismissedUntil: null, createdAt: new Date(), updatedAt: new Date() },
         ],
       });
 
@@ -204,7 +204,7 @@ describe('backup utilities', () => {
           { id: 'cat-1', name: 'Vehicle', icon: 'car', sortOrder: 0, isDefault: true, createdAt: new Date(), updatedAt: new Date() },
         ],
         items: [
-          { id: 'item-1', categoryId: 'cat-1', title: 'Car', status: 'active', serviceType: null, createdAt: new Date(), updatedAt: new Date() },
+          { id: 'item-1', categoryId: 'cat-1', title: 'Car', status: 'active', serviceType: null, dismissedUntil: null, createdAt: new Date(), updatedAt: new Date() },
         ],
       });
 

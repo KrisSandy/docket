@@ -67,7 +67,11 @@ export function useDashboard() {
       const daysUntilDeadline = earliestDeadline
         ? daysUntilDate(earliestDeadline)
         : null;
-      const displayStatus = calculateStatus(daysUntilDeadline);
+      // Check if item is dismissed (snoozed)
+      const isDismissed = item.dismissedUntil !== null
+        && item.dismissedUntil !== undefined
+        && item.dismissedUntil > new Date();
+      const displayStatus = isDismissed ? 'ok' as DisplayStatus : calculateStatus(daysUntilDeadline);
 
       // Build a key date label
       let keyDateLabel: string | null = null;
@@ -118,6 +122,7 @@ export function useDashboard() {
         daysUntilDeadline,
         keyDateLabel,
         serviceType: (item.serviceType as ServiceType) ?? null,
+        dismissedUntil: item.dismissedUntil ?? null,
         subtitle,
         keyFields,
       };

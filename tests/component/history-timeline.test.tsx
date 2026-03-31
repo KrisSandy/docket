@@ -53,6 +53,7 @@ describe('HistoryTimeline', () => {
         fieldKey: 'monthly_cost',
         oldValue: '95',
         newValue: '120',
+        changeType: 'edit' as const,
         changedAt: new Date('2026-06-15T10:30:00'),
       },
     ];
@@ -74,6 +75,7 @@ describe('HistoryTimeline', () => {
         fieldKey: 'monthly_cost',
         oldValue: '95',
         newValue: '110',
+        changeType: 'edit' as const,
         changedAt: new Date('2026-06-15T10:00:00'),
       },
       {
@@ -82,6 +84,7 @@ describe('HistoryTimeline', () => {
         fieldKey: 'monthly_cost',
         oldValue: '110',
         newValue: '120',
+        changeType: 'edit' as const,
         changedAt: new Date('2026-06-15T14:00:00'),
       },
       {
@@ -90,6 +93,7 @@ describe('HistoryTimeline', () => {
         fieldKey: 'contract_end',
         oldValue: null,
         newValue: '2026-12-01',
+        changeType: 'edit' as const,
         changedAt: new Date('2026-06-10T09:00:00'),
       },
     ];
@@ -109,6 +113,7 @@ describe('HistoryTimeline', () => {
         fieldKey: 'contract_end',
         oldValue: null,
         newValue: '2026-12-01',
+        changeType: 'edit' as const,
         changedAt: new Date('2026-06-15T10:00:00'),
       },
     ];

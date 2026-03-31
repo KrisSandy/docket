@@ -1,3 +1,4 @@
+import { BellOff } from 'lucide-react';
 import type { DashboardItem, DisplayStatus, KeyField } from '@/types';
 import { SERVICE_TYPE_LABELS } from '@/types';
 import { StatusDot } from '@/components/ui/status-dot';
@@ -40,6 +41,9 @@ function formatKeyFieldValue(field: KeyField): string {
 export function ItemCard({ item, onClick, style }: ItemCardProps) {
   const fontWeight = getStatusFontWeight(item.displayStatus);
   const keyFields = item.keyFields ?? [];
+  const isDismissed = item.dismissedUntil !== null
+    && item.dismissedUntil !== undefined
+    && item.dismissedUntil > new Date();
 
   // Show service type icon if available, otherwise category icon
   const displayIcon = item.serviceType
@@ -98,11 +102,16 @@ export function ItemCard({ item, onClick, style }: ItemCardProps) {
       <div className="pt-3 mt-3 border-t border-border/40">
         <div className="flex items-center gap-1.5">
           <StatusDot status={item.displayStatus} size="sm" />
-          {item.keyDateLabel && (
+          {isDismissed && <BellOff size={10} className="shrink-0 text-muted-foreground/50" />}
+          {isDismissed ? (
+            <span className="text-[11px] text-muted-foreground/60">
+              Snoozed
+            </span>
+          ) : item.keyDateLabel ? (
             <span className={`text-[11px] ${fontWeight} text-muted-foreground`}>
               {item.keyDateLabel}
             </span>
-          )}
+          ) : null}
         </div>
       </div>
     </button>

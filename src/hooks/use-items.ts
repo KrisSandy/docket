@@ -28,6 +28,7 @@ export function useItems() {
       title: input.title,
       status: 'active',
       serviceType: input.serviceType ?? null,
+      dismissedUntil: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -77,6 +78,20 @@ export function useItems() {
     });
   }, []);
 
+  const dismissItem = useCallback(async (id: string, dismissedUntil: Date): Promise<void> => {
+    await db.items.update(id, {
+      dismissedUntil,
+      updatedAt: new Date(),
+    });
+  }, []);
+
+  const clearDismissal = useCallback(async (id: string): Promise<void> => {
+    await db.items.update(id, {
+      dismissedUntil: null,
+      updatedAt: new Date(),
+    });
+  }, []);
+
   const listItems = useCallback(async (filters?: { status?: 'active' | 'archived'; categoryId?: string }): Promise<Item[]> => {
     let collection = db.items.toCollection();
 
@@ -100,7 +115,9 @@ export function useItems() {
     createItem,
     getItem,
     updateItem,
+    dismissItem,
+    clearDismissal,
     deleteItem,
     listItems,
-  }), [createItem, getItem, updateItem, deleteItem, listItems]);
+  }), [createItem, getItem, updateItem, dismissItem, clearDismissal, deleteItem, listItems]);
 }

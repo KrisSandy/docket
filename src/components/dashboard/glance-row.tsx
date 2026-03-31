@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { BellOff } from 'lucide-react';
 import type { DisplayStatus } from '@/types';
 import { StatusDot } from '@/components/ui/status-dot';
 import { getStatusFontWeight } from '@/lib/status';
@@ -8,6 +9,7 @@ interface GlanceRowProps {
   status: DisplayStatus;
   dateLabel: string | null;
   icon?: React.ReactNode;
+  isDismissed?: boolean;
   onClick?: () => void;
   style?: React.CSSProperties;
 }
@@ -24,6 +26,7 @@ export const GlanceRow = memo(function GlanceRow({
   status,
   dateLabel,
   icon,
+  isDismissed,
   onClick,
   style,
 }: GlanceRowProps) {
@@ -37,8 +40,9 @@ export const GlanceRow = memo(function GlanceRow({
       className={`flex w-full items-center gap-3 px-4 py-3 min-h-[44px] text-left transition-all duration-150 hover:bg-muted/50 active:bg-muted active:scale-[0.99] rounded-lg ${fontWeight}`}
     >
       <StatusDot status={status} size="sm" />
+      {isDismissed && <BellOff size={12} className="shrink-0 text-muted-foreground/50" />}
       {icon && <span className="shrink-0 text-muted-foreground">{icon}</span>}
-      <span className="flex-1 truncate text-[15px]">{title}</span>
+      <span className={`flex-1 truncate text-[15px] ${isDismissed ? 'text-muted-foreground' : ''}`}>{title}</span>
       {dateLabel && (
         <span className={`shrink-0 text-[13px] font-medium ${statusDateClasses[status]}`}>{dateLabel}</span>
       )}

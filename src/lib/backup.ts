@@ -6,7 +6,7 @@
 import type { Category, Item, ItemField, Reminder, HistoryEntry, AppSettings } from '@/db/schema';
 
 /** Current schema version — increment when DB structure changes. */
-export const CURRENT_SCHEMA_VERSION = 1;
+export const CURRENT_SCHEMA_VERSION = 2;
 
 /**
  * Structure of an exported backup file (before encryption).
@@ -62,8 +62,20 @@ export function migrateBackupData(data: BackupData): BackupData {
     return data;
   }
 
-  // Future migrations go here:
-  // if (data.schemaVersion < 2) { ... transform for v2 ... }
+  // V1 → V2: Add dismissedUntil to items, changeType to history
+  if (data.schemaVersion < 2) {
+    data = {
+      ...data,
+      items: data.items.map((item) => ({
+        ...item,
+        dismissedUntil: (item as unknown as Record<string, unknown>).dismissedUntil ?? null,
+      })),
+      history: data.history.map((entry) => ({
+        ...entry,
+        changeType: (entry as unknown as Record<string, unknown>).changeType ?? 'edit',
+      })),
+    } as BackupData;
+  }
 
   return { ...data, schemaVersion: CURRENT_SCHEMA_VERSION };
 }

@@ -1,7 +1,7 @@
 import { useMemo, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/db/database';
-import type { ItemField, HistoryEntry } from '@/db/schema';
+import type { ItemField, HistoryEntry, HistoryChangeType } from '@/db/schema';
 import type { FieldType } from '@/types';
 
 export function useItemFields() {
@@ -10,7 +10,11 @@ export function useItemFields() {
     return fields.sort((a, b) => a.sortOrder - b.sortOrder);
   }, []);
 
-  const updateField = useCallback(async (fieldId: string, newValue: string | null): Promise<void> => {
+  const updateField = useCallback(async (
+    fieldId: string,
+    newValue: string | null,
+    changeType: HistoryChangeType = 'edit'
+  ): Promise<void> => {
     const field = await db.itemFields.get(fieldId);
     if (!field) throw new Error(`Field ${fieldId} not found`);
 
@@ -29,6 +33,7 @@ export function useItemFields() {
       fieldKey: field.fieldKey,
       oldValue,
       newValue,
+      changeType,
       changedAt: new Date(),
     };
 

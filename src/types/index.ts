@@ -77,6 +77,8 @@ export interface DashboardItem {
   daysUntilDeadline: number | null;
   keyDateLabel: string | null;
   serviceType: ServiceType | null;
+  /** Date until which the item is dismissed (snoozed), or null if not dismissed */
+  dismissedUntil: Date | null;
   /** Contextual subtitle for cards (e.g. "Toyota Corolla | 12-D-12345") */
   subtitle?: string;
   /** Up to 3 highlight fields shown on detail cards */
