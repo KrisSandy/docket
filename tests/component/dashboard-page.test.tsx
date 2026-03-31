@@ -262,6 +262,6 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
     const itemRow = await screen.findByText('My Car');
     await user.click(itemRow);
-    expect(pushMock).toHaveBeenCalledWith('/item/item-123');
+    expect(pushMock).toHaveBeenCalledWith('/item?id=item-123');
   });
 });
