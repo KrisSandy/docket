@@ -32,7 +32,7 @@ vi.mock('@/db/database', () => ({
   },
 }));
 
-import AddItemFormPage from '@/app/(app)/add/[categoryId]/page';
+import AddItemFormPage from '@/app/(app)/add/form/add-form-client';
 
 describe('Utilities Form — Service Type Selection', () => {
   beforeEach(() => {

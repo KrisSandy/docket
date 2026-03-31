@@ -61,6 +61,7 @@ Today's date is 2026-03-30.
 3. **Notifications are the core feature.** Everything else supports the reminder system. Use @capacitor/local-notifications for native scheduling — no server dependency.
 4. **Notification content must be generic.** Never include provider names, amounts, dates, or any PII in notification title/body. Details shown only inside the app after biometric unlock.
 5. **Test everything.** Full regression on every push. CI blocks merge on any failure. 100% coverage target on `lib/` folder.
+6. **Static export for native.** Next.js uses `output: 'export'` to produce static files for Capacitor. Dynamic routes use query params (`/item?id=xxx`, `/add/form?categoryId=xxx`) instead of path segments because static export cannot pre-render IndexedDB-driven dynamic paths. Pages using `useSearchParams` must be wrapped in `<Suspense>`.
 
 ## Design System
 
@@ -79,8 +80,9 @@ src/
     (marketing)/          # SEO pages (landing, blog, privacy)
     (app)/                # App screens (behind biometric auth)
       dashboard/          # Main "Morning Coffee Glance" screen
-      item/[id]/          # Item detail/edit
-      add/                # Add new item
+      item/               # Item detail/edit (query param: ?id=xxx)
+      add/                # Category picker
+      add/form/           # Add new item form (query param: ?categoryId=xxx&name=xxx)
       settings/           # Settings, backup, export
       history/            # Archived items
   components/
@@ -209,9 +211,15 @@ npm run test            # Run Vitest unit + component tests
 npm run test:e2e        # Run Playwright E2E tests
 npm run test:coverage   # Run tests with coverage report
 
-# Build
-npm run build           # Next.js production build
+# Build (web)
+npm run build           # Next.js production build (static export to out/)
 npm run lint            # ESLint + TypeScript check
+
+# Build (Android APK)
+npm run build           # Build web assets first
+npx cap sync android    # Sync to Android project
+cd android && ./gradlew assembleDebug  # Build debug APK
+# Output: android/app/build/outputs/apk/debug/app-debug.apk
 
 # CI (runs automatically on push)
 # lint → typecheck → unit tests → component tests → e2e tests → build

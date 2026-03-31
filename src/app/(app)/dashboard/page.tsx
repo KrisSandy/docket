@@ -57,7 +57,7 @@ export default function DashboardPage() {
   const [renewDialogOpen, setRenewDialogOpen] = useState(false);
   const [dismissDialogOpen, setDismissDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DashboardItem | null>(null);
-  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [, setBannerDismissed] = useState(false);
 
   const { dismissItem, clearDismissal } = useItems();
   const { getFieldsForItem, updateField } = useItemFields();
