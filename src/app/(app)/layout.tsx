@@ -15,6 +15,20 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // Initialize notification system: tap handler, reschedule on launch/foreground
   useNotificationInit();
 
+  // Configure native status bar to overlay WebView so env(safe-area-inset-top) works
+  useEffect(() => {
+    const configureStatusBar = async () => {
+      try {
+        const { StatusBar, Style } = await import('@capacitor/status-bar');
+        await StatusBar.setOverlaysWebView({ overlay: true });
+        await StatusBar.setStyle({ style: Style.Light });
+      } catch {
+        // Not running in native Capacitor — ignore
+      }
+    };
+    configureStatusBar();
+  }, []);
+
   useEffect(() => {
     const init = async () => {
       // DEV ONLY: clean up legacy categories from earlier schema.
@@ -36,7 +50,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-background">
       <NotificationPermissionBanner />
-      <main className="safe-top mx-auto max-w-lg px-4 pb-24 pt-6">{children}</main>
+      <main className="mx-auto max-w-lg px-4 pb-24 pt-6">{children}</main>
       <BottomNav />
     </div>
   );

@@ -197,6 +197,8 @@
   body {
     @apply bg-background text-foreground;
     letter-spacing: var(--tracking-normal);
+    /* Prevent content from overlapping device status bar / notch / Dynamic Island */
+    padding-top: env(safe-area-inset-top, 0px);
   }
 }
 
