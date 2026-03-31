@@ -14,6 +14,23 @@ vi.mock('@/db/seed', () => ({
   seedDefaultCategories: vi.fn(),
 }));
 
+// Mock DB for view persistence
+vi.mock('@/db/database', () => ({
+  db: {
+    settings: {
+      get: vi.fn().mockResolvedValue(undefined),
+      put: vi.fn().mockResolvedValue(undefined),
+    },
+    categories: {
+      where: () => ({
+        equals: () => ({
+          first: () => Promise.resolve(null),
+        }),
+      }),
+    },
+  },
+}));
+
 const mockGetDashboardData = vi.fn();
 vi.mock('@/hooks/use-dashboard', () => ({
   useDashboard: () => ({
@@ -70,10 +87,10 @@ describe('Dashboard Category Filter', () => {
     // Wait for data to load
     await screen.findByText('Car Insurance');
 
-    // Filter chips should be visible
+    // Filter chips should be visible (text may also appear in item cards)
     expect(screen.getByText('All')).toBeInTheDocument();
-    expect(screen.getByText('Vehicle')).toBeInTheDocument();
-    expect(screen.getByText('Utilities')).toBeInTheDocument();
+    expect(screen.getAllByText('Vehicle').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('Utilities').length).toBeGreaterThanOrEqual(1);
   });
 
   it('filters items when category chip is tapped', async () => {
@@ -117,8 +134,15 @@ describe('Dashboard Category Filter', () => {
     render(<DashboardPage />);
     await screen.findByText('Car Insurance');
 
-    // Click "Vehicle" filter
-    await user.click(screen.getByText('Vehicle'));
+    // Click the "Vehicle" filter chip button (not the one inside an ItemCard)
+    // Filter chips are direct children of the scrollable chip container
+    const vehicleButtons = screen.getAllByText('Vehicle');
+    // The filter chip is a <button> element in the chip bar
+    const filterChip = vehicleButtons.find(
+      (el) => el.closest('button')?.classList.contains('rounded-full')
+    );
+    expect(filterChip).toBeTruthy();
+    await user.click(filterChip!);
 
     // Should only show Car Insurance, not Electricity
     expect(screen.getByText('Car Insurance')).toBeInTheDocument();

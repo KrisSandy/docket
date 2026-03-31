@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { CircleCheck, AlertTriangle } from 'lucide-react';
 import type { DisplayStatus } from '@/types';
 
 interface StatusBannerProps {
@@ -35,22 +36,56 @@ export function StatusBanner({ attentionCount, overallStatus, onClick }: StatusB
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    // Trigger the fade-in animation on mount
     const timer = setTimeout(() => setIsVisible(true), 50);
     return () => clearTimeout(timer);
   }, []);
 
+  const isCalm = overallStatus === 'ok';
+
+  // Calm state: compact pill with checkmark
+  if (isCalm) {
+    return (
+      <button
+        type="button"
+        onClick={onClick}
+        className={`w-full rounded-xl px-5 py-3.5 min-h-[44px] text-left transition-all duration-500 ease-out ${statusBgClasses[overallStatus]} ${
+          isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--status-ok)]/15 ${statusTextClasses[overallStatus]}`}>
+            <CircleCheck size={18} strokeWidth={2} />
+          </div>
+          <p className={`text-[15px] font-semibold ${statusTextClasses[overallStatus]}`}>
+            {message}
+          </p>
+        </div>
+      </button>
+    );
+  }
+
+  // Attention state: bold, prominent hero banner
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`w-full rounded-xl px-6 py-5 min-h-[44px] text-left transition-all duration-500 ease-out ${statusBgClasses[overallStatus]} ${
+      className={`w-full rounded-xl px-6 py-5 min-h-[44px] text-left shadow-sm transition-all duration-500 ease-out ${statusBgClasses[overallStatus]} ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'
       }`}
     >
-      <p className={`text-[28px] font-bold tracking-tight ${statusTextClasses[overallStatus]}`}>
-        {message}
-      </p>
+      <div className="flex items-start gap-4">
+        <div className={`mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--status-${overallStatus})]/15 ${statusTextClasses[overallStatus]}`}>
+          <AlertTriangle size={22} strokeWidth={2} />
+        </div>
+        <div>
+          <p className={`text-[24px] font-bold tracking-tight ${statusTextClasses[overallStatus]}`}>
+            {message}
+          </p>
+          <p className="mt-0.5 text-[13px] text-muted-foreground">
+            Tap to review
+          </p>
+        </div>
+      </div>
     </button>
   );
 }

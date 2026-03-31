@@ -5,8 +5,8 @@ import { BILLING_FREQUENCY_OPTIONS } from '@/types';
 const vehicleFields: TemplateField[] = [
   { fieldKey: 'registration_number', label: 'Registration Number', fieldType: 'text', sortOrder: 0, helperText: 'e.g., 12-D-12345', placeholder: '12-D-12345' },
   { fieldKey: 'make_model', label: 'Make & Model', fieldType: 'text', sortOrder: 1, placeholder: 'e.g., Toyota Corolla' },
-  { fieldKey: 'year_of_manufacture', label: 'Year of Manufacture', fieldType: 'number', sortOrder: 2, placeholder: '2020' },
-  { fieldKey: 'fuel_type', label: 'Fuel Type', fieldType: 'text', sortOrder: 3, helperText: 'Petrol, Diesel, Electric, or Hybrid', placeholder: 'Petrol' },
+  { fieldKey: 'year_of_manufacture', label: 'Year of Manufacture', fieldType: 'number', sortOrder: 2, placeholder: String(new Date().getFullYear()), min: 1900, max: new Date().getFullYear() },
+  { fieldKey: 'fuel_type', label: 'Fuel Type', fieldType: 'text', sortOrder: 3, placeholder: 'Select...', options: ['Petrol', 'Diesel', 'Electric', 'Hybrid', 'Plug-in Hybrid'] },
   { fieldKey: 'insurance_provider', label: 'Insurance Provider', fieldType: 'text', sortOrder: 4 },
   { fieldKey: 'policy_number', label: 'Policy Number', fieldType: 'text', sortOrder: 5 },
   { fieldKey: 'annual_premium', label: 'Annual Premium', fieldType: 'currency', sortOrder: 6 },
@@ -140,6 +140,63 @@ export const SERVICE_TYPE_FIELDS: Record<ServiceType, TemplateField[]> = {
   tv_streaming: tvStreamingFields,
   water: waterFields,
 };
+
+/**
+ * Fields used to build a contextual subtitle on dashboard cards.
+ * Values are joined with " · " separator.  Falls back to category name.
+ */
+export const CATEGORY_SUBTITLE_FIELDS: Record<string, string[]> = {
+  Vehicle: ['make_model', 'registration_number'],
+  Utilities: ['provider'],
+  Housing: ['property_address'],
+  Insurance: ['insurance_type', 'provider'],
+};
+
+/**
+ * Get the subtitle field keys for a given category name.
+ */
+export function getSubtitleFieldKeys(categoryName: string): string[] {
+  return CATEGORY_SUBTITLE_FIELDS[categoryName] ?? [];
+}
+
+/**
+ * Short labels for dashboard card display.
+ * Falls back to the full template label if not listed here.
+ */
+export const CARD_SHORT_LABELS: Record<string, string> = {
+  nct_date: 'NCT',
+  motor_tax_due: 'Motor Tax',
+  insurance_renewal: 'Insurance Renewal',
+  contract_end: 'Contract End',
+  fixed_term_end: 'Fixed Term End',
+  lpt_due_date: 'LPT Due',
+  renewal_date: 'Renewal',
+  monthly_cost: 'Monthly',
+  annual_premium: 'Premium',
+  mortgage_rent_amount: 'Monthly',
+  cover_amount: 'Cover',
+  interest_rate: 'Rate',
+  billing_frequency: 'Billing',
+  estimated_annual_cost: 'Annual Est.',
+};
+
+/**
+ * Key fields to highlight on dashboard cards per category.
+ * Order determines display priority — first 3 with values are shown.
+ */
+export const CATEGORY_KEY_FIELDS: Record<string, string[]> = {
+  Vehicle: ['nct_date', 'motor_tax_due', 'insurance_renewal', 'annual_premium'],
+  Utilities: ['contract_end'],
+  Housing: ['mortgage_rent_amount', 'lpt_due_date', 'fixed_term_end', 'interest_rate'],
+  Insurance: ['annual_premium', 'renewal_date', 'cover_amount'],
+};
+
+/**
+ * Get the key field keys for a given category name.
+ */
+export function getKeyFieldKeys(categoryName: string): string[] {
+  return CATEGORY_KEY_FIELDS[categoryName] ?? [];
+}
 
 /**
  * Get the template fields for a given category name.

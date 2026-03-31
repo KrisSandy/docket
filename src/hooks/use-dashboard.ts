@@ -4,7 +4,8 @@ import type { ItemField, Category } from '@/db/schema';
 import type { DashboardItem, DisplayStatus } from '@/types';
 import { daysUntilDate, getEarliestDeadline, formatCountdown } from '@/lib/dates';
 import { calculateStatus, getStatusPriority } from '@/lib/status';
-import type { ServiceType } from '@/types';
+import { getKeyFieldKeys, getSubtitleFieldKeys, getTemplateFields, CARD_SHORT_LABELS } from '@/lib/templates';
+import type { ServiceType, KeyField } from '@/types';
 
 export interface DashboardCategory {
   id: string;
@@ -74,6 +75,37 @@ export function useDashboard() {
         keyDateLabel = formatCountdown(daysUntilDeadline);
       }
 
+      // Build key fields for card detail view
+      const catName = category?.name ?? '';
+      const highlightKeys = getKeyFieldKeys(catName);
+      const templateFieldDefs = getTemplateFields(catName, (item.serviceType as ServiceType) ?? undefined);
+      const templateFieldMap = new Map(templateFieldDefs.map((tf) => [tf.fieldKey, tf]));
+      const fieldMap = new Map(fields.map((f) => [f.fieldKey, f]));
+
+      const keyFields: KeyField[] = [];
+      for (const key of highlightKeys) {
+        if (keyFields.length >= 3) break;
+        const dbField = fieldMap.get(key);
+        if (dbField?.fieldValue) {
+          const templateDef = templateFieldMap.get(key);
+          const fullLabel = templateDef?.label ?? dbField.label;
+          keyFields.push({
+            label: CARD_SHORT_LABELS[key] ?? fullLabel,
+            value: dbField.fieldValue,
+            fieldType: dbField.fieldType,
+          });
+        }
+      }
+
+      // Build contextual subtitle from category-specific fields
+      const subtitleKeys = getSubtitleFieldKeys(catName);
+      const subtitleParts = subtitleKeys
+        .map((key) => fieldMap.get(key)?.fieldValue)
+        .filter((v): v is string => !!v && v.trim() !== '');
+      const subtitle = subtitleParts.length > 0
+        ? subtitleParts.join(' · ')
+        : undefined;
+
       return {
         id: item.id,
         categoryId: item.categoryId,
@@ -86,6 +118,8 @@ export function useDashboard() {
         daysUntilDeadline,
         keyDateLabel,
         serviceType: (item.serviceType as ServiceType) ?? null,
+        subtitle,
+        keyFields,
       };
     });
 

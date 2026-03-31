@@ -54,6 +54,15 @@ export interface TemplateField {
   helperText?: string;
   placeholder?: string;
   options?: readonly string[];
+  min?: number;
+  max?: number;
+}
+
+/** A field snippet displayed on dashboard cards */
+export interface KeyField {
+  label: string;
+  value: string;
+  fieldType: FieldType;
 }
 
 export interface DashboardItem {
@@ -68,4 +77,8 @@ export interface DashboardItem {
   daysUntilDeadline: number | null;
   keyDateLabel: string | null;
   serviceType: ServiceType | null;
+  /** Contextual subtitle for cards (e.g. "Toyota Corolla | 12-D-12345") */
+  subtitle?: string;
+  /** Up to 3 highlight fields shown on detail cards */
+  keyFields?: KeyField[];
 }

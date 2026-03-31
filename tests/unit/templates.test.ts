@@ -74,7 +74,7 @@ describe('getTemplateFields', () => {
     const fields = getTemplateFields('Vehicle');
     const fuel = fields.find((f) => f.fieldKey === 'fuel_type');
     expect(fuel).toBeDefined();
-    expect(fuel?.helperText).toContain('Petrol');
+    expect(fuel?.options).toContain('Petrol');
   });
 
   it('Vehicle template has insurance excess field', () => {

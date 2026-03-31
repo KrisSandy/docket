@@ -24,6 +24,23 @@ vi.mock('@/db/seed', () => ({
   seedDefaultCategories: vi.fn(),
 }));
 
+// Mock DB for view persistence
+vi.mock('@/db/database', () => ({
+  db: {
+    settings: {
+      get: vi.fn().mockResolvedValue(undefined),
+      put: vi.fn().mockResolvedValue(undefined),
+    },
+    categories: {
+      where: () => ({
+        equals: () => ({
+          first: () => Promise.resolve(null),
+        }),
+      }),
+    },
+  },
+}));
+
 import DashboardPage from '@/app/(app)/dashboard/page';
 
 describe('DashboardPage', () => {
@@ -48,7 +65,7 @@ describe('DashboardPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows "All clear" status banner when all items ok', async () => {
+  it('renders dashboard without status banner when all items ok', async () => {
     mockGetDashboardData.mockResolvedValue({
       items: [
         {
@@ -72,10 +89,13 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
 
-    expect(await screen.findByText(/All clear/)).toBeInTheDocument();
+    // Items render without a banner
+    expect(await screen.findByText('Car Insurance')).toBeInTheDocument();
+    // No snackbar when attention count is 0
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('shows attention count when urgent items exist', async () => {
+  it('shows snackbar when urgent items exist', async () => {
     mockGetDashboardData.mockResolvedValue({
       items: [
         {
@@ -116,7 +136,10 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
 
+    // Snackbar should show the attention message
     expect(await screen.findByText('1 item needs attention')).toBeInTheDocument();
+    // Snackbar uses role="status"
+    expect(screen.getByRole('status')).toBeInTheDocument();
   });
 
   it('renders items sorted by status priority', async () => {

@@ -15,7 +15,11 @@ import {
   Upload,
   FileText,
   MessageCircle,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react';
+import { useTheme, type ThemeMode } from '@/hooks/use-theme';
 import { db } from '@/db/database';
 import { CategoryIcon } from '@/components/ui/category-icon';
 import { useBackup } from '@/hooks/use-backup';
@@ -130,6 +134,7 @@ export default function SettingsPage() {
     loading: notificationsLoading,
     toggleNotifications,
   } = useNotificationSettings();
+  const { mode: themeMode, setTheme } = useTheme();
 
   // State
   const [categorySummary, setCategorySummary] = useState<{ name: string; icon: string; count: number }[]>([]);
@@ -394,6 +399,48 @@ export default function SettingsPage() {
               }`}
             />
           </button>
+        </div>
+      </SettingsSection>
+
+      {/* ===== Appearance ===== */}
+      <SettingsSection title="Appearance">
+        <div className="px-4 py-4">
+          <div className="flex items-center gap-4 mb-3">
+            <div className="text-muted-foreground">
+              {themeMode === 'dark' ? <Moon size={20} /> : themeMode === 'light' ? <Sun size={20} /> : <Monitor size={20} />}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] text-foreground">Theme</p>
+              <p className="text-[13px] text-muted-foreground mt-0.5">
+                {themeMode === 'system'
+                  ? 'Matches your device setting'
+                  : themeMode === 'dark'
+                    ? 'Always dark'
+                    : 'Always light'}
+              </p>
+            </div>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { value: 'system' as ThemeMode, label: 'System', icon: <Monitor size={16} /> },
+              { value: 'light' as ThemeMode, label: 'Light', icon: <Sun size={16} /> },
+              { value: 'dark' as ThemeMode, label: 'Dark', icon: <Moon size={16} /> },
+            ]).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setTheme(option.value)}
+                className={`flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-semibold transition-all duration-150 active:scale-95 ${
+                  themeMode === option.value
+                    ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
+                    : 'bg-muted/40 text-muted-foreground hover:bg-muted/70'
+                }`}
+              >
+                {option.icon}
+                {option.label}
+              </button>
+            ))}
+          </div>
         </div>
       </SettingsSection>
 

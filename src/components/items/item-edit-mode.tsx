@@ -39,6 +39,16 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
       .filter((tf) => tf.options)
       .map((tf) => [tf.fieldKey, tf.options])
   );
+  const fieldMinMap = new Map(
+    templateFields
+      .filter((tf) => tf.min !== undefined)
+      .map((tf) => [tf.fieldKey, tf.min!])
+  );
+  const fieldMaxMap = new Map(
+    templateFields
+      .filter((tf) => tf.max !== undefined)
+      .map((tf) => [tf.fieldKey, tf.max!])
+  );
 
   const [fieldStates, setFieldStates] = useState<FieldState[]>(() =>
     fields.map((f) => ({
@@ -168,6 +178,8 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
             onChange={(value) => handleFieldChange(field.id, value)}
             error={errors[field.id]}
             options={fieldOptionsMap.get(field.fieldKey)}
+            min={fieldMinMap.get(field.fieldKey)}
+            max={fieldMaxMap.get(field.fieldKey)}
           />
         ))}
       </div>

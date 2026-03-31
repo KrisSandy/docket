@@ -31,7 +31,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-background/80 backdrop-blur-xl safe-bottom"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-border/50 bg-background/80 backdrop-blur-xl shadow-[0_-1px_3px_rgba(0,0,0,0.04)] safe-bottom"
       role="tablist"
       aria-label="Main navigation"
     >
@@ -46,13 +46,18 @@ export function BottomNav() {
               role="tab"
               aria-selected={isActive}
               aria-label={item.label}
-              className={`flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors ${
+              className={`flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-1 py-2 transition-all duration-200 active:scale-95 ${
                 isActive
                   ? 'text-primary'
                   : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {isActive ? item.activeIcon : item.icon}
+              <div className="relative">
+                {isActive ? item.activeIcon : item.icon}
+                {isActive && (
+                  <span className="absolute -bottom-1.5 left-1/2 h-1 w-5 -translate-x-1/2 rounded-full bg-primary" />
+                )}
+              </div>
               <span className={`text-[11px] ${isActive ? 'font-semibold' : 'font-normal'}`}>
                 {item.label}
               </span>

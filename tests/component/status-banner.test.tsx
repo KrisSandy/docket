@@ -54,4 +54,24 @@ describe('StatusBanner', () => {
     const button = screen.getByRole('button');
     expect(button.className).toContain('min-h-[44px]');
   });
+
+  it('renders compact layout for ok status', () => {
+    render(<StatusBanner attentionCount={0} overallStatus="ok" />);
+    // OK status uses compact pill layout with 15px text
+    const text = screen.getByText(/All clear/);
+    expect(text.className).toContain('text-[15px]');
+  });
+
+  it('renders prominent layout for attention statuses', () => {
+    render(<StatusBanner attentionCount={2} overallStatus="urgent" />);
+    // Attention states use 24px bold hero text
+    const text = screen.getByText('2 items need attention');
+    expect(text.className).toContain('text-[24px]');
+    expect(text.className).toContain('font-bold');
+  });
+
+  it('shows "Tap to review" hint for attention statuses', () => {
+    render(<StatusBanner attentionCount={1} overallStatus="warning" />);
+    expect(screen.getByText('Tap to review')).toBeInTheDocument();
+  });
 });

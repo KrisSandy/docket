@@ -19,6 +19,8 @@ interface FormFieldState {
   helperText?: string;
   placeholder?: string;
   options?: readonly string[];
+  min?: number;
+  max?: number;
 }
 
 export default function AddItemFormPage() {
@@ -54,6 +56,8 @@ export default function AddItemFormPage() {
         helperText: tf.helperText,
         placeholder: tf.placeholder,
         options: tf.options,
+        min: tf.min,
+        max: tf.max,
       }))
     );
   }, [categoryName, selectedServiceType]);
@@ -177,6 +181,8 @@ export default function AddItemFormPage() {
                 helperText={field.helperText}
                 placeholder={field.placeholder}
                 options={field.options}
+                min={field.min}
+                max={field.max}
               />
             ))}
           </div>

@@ -1,17 +1,45 @@
-import type { DashboardItem } from '@/types';
+import type { DashboardItem, DisplayStatus, KeyField } from '@/types';
 import { SERVICE_TYPE_LABELS } from '@/types';
 import { StatusDot } from '@/components/ui/status-dot';
 import { getStatusFontWeight } from '@/lib/status';
-import { CategoryIcon } from '@/components/ui/category-icon';
+import { CategoryIconBadge } from '@/components/ui/category-icon';
 import { SERVICE_TYPE_ICONS } from '@/types';
+import { formatEUR } from '@/lib/currency';
+import { formatDate } from '@/lib/dates';
 
 interface ItemCardProps {
   item: DashboardItem;
   onClick?: () => void;
+  style?: React.CSSProperties;
 }
 
-export function ItemCard({ item, onClick }: ItemCardProps) {
+const statusTintClasses: Record<DisplayStatus, string> = {
+  ok: '',
+  warning: '',
+  urgent: '',
+  expired: '',
+};
+
+function formatKeyFieldValue(field: KeyField): string {
+  switch (field.fieldType) {
+    case 'currency': {
+      const num = parseFloat(field.value);
+      return isNaN(num) ? field.value : formatEUR(num);
+    }
+    case 'date': {
+      const date = new Date(field.value);
+      return isNaN(date.getTime()) ? field.value : formatDate(date);
+    }
+    case 'percentage':
+      return `${field.value}%`;
+    default:
+      return field.value;
+  }
+}
+
+export function ItemCard({ item, onClick, style }: ItemCardProps) {
   const fontWeight = getStatusFontWeight(item.displayStatus);
+  const keyFields = item.keyFields ?? [];
 
   // Show service type icon if available, otherwise category icon
   const displayIcon = item.serviceType
@@ -26,29 +54,56 @@ export function ItemCard({ item, onClick }: ItemCardProps) {
     <button
       type="button"
       onClick={onClick}
-      className="w-full rounded-xl border border-border bg-card p-4 text-left transition-colors hover:bg-muted/30 active:bg-muted/50 min-h-[44px]"
+      style={style}
+      className={`flex w-full flex-col rounded-xl border border-border/60 bg-card p-3.5 text-left shadow-sm transition-all duration-150 hover:shadow-md hover:bg-muted/20 active:scale-[0.98] active:shadow-xs min-h-[44px] ${statusTintClasses[item.displayStatus]}`}
     >
-      <div className="flex items-start gap-3">
-        <div className="mt-0.5 text-muted-foreground">
-          <CategoryIcon icon={displayIcon} size={18} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <StatusDot status={item.displayStatus} size="sm" />
-            <h3 className={`text-[15px] truncate ${fontWeight}`}>
-              {item.title}
-            </h3>
+      {/* Header: icon + title inline */}
+      <div className="flex items-center gap-3.5 min-w-0">
+        <CategoryIconBadge icon={displayIcon} size="sm" />
+        <h3 className="text-[16px] font-bold leading-tight truncate min-w-0">
+          {item.title}
+        </h3>
+      </div>
+
+      {/* Body — grows to fill space, pushing footer down */}
+      <div className="flex-1">
+        {/* Subtitle */}
+        <p className="mt-1.5 text-[12px] text-muted-foreground truncate">
+          {item.subtitle ?? (
+            <>
+              {item.categoryName}
+              {serviceLabel && ` · ${serviceLabel}`}
+            </>
+          )}
+        </p>
+
+        {/* Key fields */}
+        {keyFields.length > 0 && (
+          <div className="mt-2 grid gap-1">
+            {keyFields.map((field) => (
+              <div key={field.label} className="flex items-baseline justify-between gap-2">
+                <span className="text-[10px] uppercase tracking-wide text-muted-foreground/70 shrink-0">
+                  {field.label}
+                </span>
+                <span className="text-[12px] font-medium text-foreground/80 text-right">
+                  {formatKeyFieldValue(field)}
+                </span>
+              </div>
+            ))}
           </div>
-          <p className="mt-1 text-[13px] text-muted-foreground">
-            {item.categoryName}
-            {serviceLabel && ` · ${serviceLabel}`}
-          </p>
-        </div>
-        {item.keyDateLabel && (
-          <span className={`shrink-0 text-[13px] text-muted-foreground ${fontWeight}`}>
-            {item.keyDateLabel}
-          </span>
         )}
+      </div>
+
+      {/* Footer: status dot + deadline — always at bottom */}
+      <div className="pt-3 mt-3 border-t border-border/40">
+        <div className="flex items-center gap-1.5">
+          <StatusDot status={item.displayStatus} size="sm" />
+          {item.keyDateLabel && (
+            <span className={`text-[11px] ${fontWeight} text-muted-foreground`}>
+              {item.keyDateLabel}
+            </span>
+          )}
+        </div>
       </div>
     </button>
   );

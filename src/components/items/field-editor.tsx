@@ -12,6 +12,8 @@ interface FieldEditorProps {
   helperText?: string;
   placeholder?: string;
   options?: readonly string[];
+  min?: number;
+  max?: number;
 }
 
 export function FieldEditor({
@@ -24,6 +26,8 @@ export function FieldEditor({
   helperText,
   placeholder,
   options,
+  min,
+  max,
 }: FieldEditorProps) {
   const inputId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
@@ -63,7 +67,7 @@ export function FieldEditor({
               id={inputId}
               type="number"
               inputMode="decimal"
-              step="0.01"
+              step="1"
               min="0"
               value={value}
               onChange={(e) => onChange(e.target.value)}
@@ -97,6 +101,8 @@ export function FieldEditor({
             className={commonClasses}
             required={isRequired}
             placeholder={placeholder ?? '0'}
+            min={min}
+            max={max}
           />
         );
 

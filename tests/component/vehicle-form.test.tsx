@@ -61,9 +61,14 @@ describe('Vehicle Form', () => {
     expect(screen.getByText(/12-D-12345/)).toBeInTheDocument();
   });
 
-  it('shows helper text for fuel type', () => {
+  it('shows fuel type as dropdown with options', () => {
     render(<AddItemFormPage />);
-    expect(screen.getByText(/Petrol, Diesel, Electric, or Hybrid/)).toBeInTheDocument();
+    const select = screen.getByLabelText('Fuel Type');
+    expect(select.tagName).toBe('SELECT');
+    expect(screen.getByText('Petrol')).toBeInTheDocument();
+    expect(screen.getByText('Diesel')).toBeInTheDocument();
+    expect(screen.getByText('Electric')).toBeInTheDocument();
+    expect(screen.getByText('Hybrid')).toBeInTheDocument();
   });
 
   it('does not show service type picker for Vehicle', () => {
