@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import { ServiceWorkerRegister } from '@/components/pwa/sw-register';
 import { ThemeInit } from '@/components/pwa/theme-init';
+import { StatusBarShield } from '@/components/layout/status-bar-shield';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -42,6 +43,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased" suppressHydrationWarning>
         <ThemeInit />
+        <StatusBarShield />
         {children}
         <ServiceWorkerRegister />
       </body>
