@@ -29,6 +29,7 @@ import { useNotificationSettings } from '@/hooks/use-notification-settings';
 import { AndroidNotificationHelp } from '@/components/items/android-notification-help';
 import { isValidEncryptedPayload } from '@/lib/encryption';
 import { seedDefaultCategories } from '@/db/seed';
+import { seedTestNotifications, clearTestNotifications } from '@/lib/seed-test-notifications';
 
 // ---------- Shared sub-components ----------
 
@@ -165,6 +166,11 @@ export default function SettingsPage() {
   const [showDeleteFinalConfirm, setShowDeleteFinalConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
+  // Dev tools state
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
+  const [seedResult, setSeedResult] = useState<string | null>(null);
+
   // Load initial data
   useEffect(() => {
     const loadSummary = async () => {
@@ -298,6 +304,34 @@ export default function SettingsPage() {
       await disableBiometric();
     } else {
       await enableBiometric();
+    }
+  };
+
+  const handleSeedTestNotifications = async () => {
+    setIsSeeding(true);
+    setSeedResult(null);
+    try {
+      const result = await seedTestNotifications();
+      setSeedResult(
+        `Created ${result.itemsCreated} test items, scheduled ${result.notificationsScheduled} notifications`
+      );
+    } catch (err) {
+      setSeedResult(`Error: ${err instanceof Error ? err.message : 'Failed to seed'}`);
+    } finally {
+      setIsSeeding(false);
+    }
+  };
+
+  const handleClearTestNotifications = async () => {
+    setIsClearing(true);
+    setSeedResult(null);
+    try {
+      const count = await clearTestNotifications();
+      setSeedResult(`Removed ${count} test item${count === 1 ? '' : 's'}`);
+    } catch (err) {
+      setSeedResult(`Error: ${err instanceof Error ? err.message : 'Failed to clear'}`);
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -525,6 +559,59 @@ export default function SettingsPage() {
           onClick={() => setShowDeleteConfirm(true)}
           destructive
         />
+      </SettingsSection>
+
+      {/* ===== Dev Tools ===== */}
+      <SettingsSection title="Dev Tools">
+        <div className="px-4 py-4">
+          <p className="text-[13px] text-muted-foreground mb-3">
+            Seed test items with dates set to trigger notifications at staggered times.
+            Items are prefixed with [TEST] for easy identification.
+          </p>
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleSeedTestNotifications}
+                disabled={isSeeding || isClearing}
+                className="min-h-[44px] rounded-xl bg-primary px-4 py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+              >
+                {isSeeding ? 'Seeding...' : 'Seed Test Data'}
+              </button>
+              <button
+                type="button"
+                onClick={handleClearTestNotifications}
+                disabled={isSeeding || isClearing}
+                className="min-h-[44px] rounded-xl bg-muted px-4 py-3 text-[15px] font-semibold text-foreground transition-colors hover:bg-muted/70 disabled:opacity-50"
+              >
+                {isClearing ? 'Clearing...' : 'Clear Test Data'}
+              </button>
+            </div>
+            {seedResult && (
+              <p className={`text-[13px] ${seedResult.startsWith('Error') ? 'text-destructive' : 'text-muted-foreground'}`}>
+                {seedResult}
+              </p>
+            )}
+            <div className="rounded-lg bg-muted/40 p-3 space-y-1.5">
+              <p className="text-[13px] font-medium text-foreground">What gets created:</p>
+              <p className="text-[12px] text-muted-foreground">
+                <span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-1.5 align-middle" />
+                4 notifications fire in <span className="font-semibold">10–40 seconds</span> (NCT, Motor Tax, LPT, Insurance)
+              </p>
+              <p className="text-[12px] text-muted-foreground">
+                <span className="inline-block w-3 h-3 rounded-full bg-amber-500 mr-1.5 align-middle" />
+                Future reminders scheduled via standard path (tomorrow+)
+              </p>
+              <p className="text-[12px] text-muted-foreground">
+                <span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-1.5 align-middle" />
+                1 expired item (no notifications — past deadline)
+              </p>
+              <p className="text-[11px] text-muted-foreground/70 mt-1">
+                Ensure notifications are enabled above and the app has OS permission.
+              </p>
+            </div>
+          </div>
+        </div>
       </SettingsSection>
 
       {/* ===== About ===== */}

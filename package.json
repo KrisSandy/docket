@@ -10,7 +10,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "build:android": "next build && npx cap sync android && cd android && ./gradlew assembleDebug"
   },
   "dependencies": {
     "@aparajita/capacitor-biometric-auth": "^10.0.0",

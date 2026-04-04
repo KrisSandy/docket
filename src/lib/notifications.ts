@@ -122,7 +122,13 @@ export async function scheduleReminder(
   }
 
   const notificationId = buildNotificationId(reminderId);
-  const scheduleAt = isTriggerToday(triggerDate) ? new Date() : triggerDate;
+  // When the trigger date is today, schedule 10 seconds in the future.
+  // Scheduling for exactly `new Date()` can be silently dropped by native
+  // platforms because the timestamp is already in the past by the time the
+  // OS processes the request.
+  const scheduleAt = isTriggerToday(triggerDate)
+    ? new Date(Date.now() + 10_000)
+    : triggerDate;
 
   try {
     await LocalNotifications.schedule({
