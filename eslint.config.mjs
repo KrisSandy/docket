@@ -13,6 +13,12 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     "sample-css.tsx",
+    // Native build output — these directories contain copies of the web
+    // bundle and minified vendor chunks from Capacitor. They are generated
+    // artifacts, not source, and should never be linted.
+    "android/app/build/**",
+    "android/app/src/main/assets/**",
+    "ios/App/App/public/**",
   ]),
 ]);
 

@@ -53,13 +53,72 @@ export function validateBackupStructure(data: unknown): string | null {
 }
 
 /**
+ * Coerce a JSON-parsed value that should be a Date back into a Date.
+ * JSON.parse turns Date instances into ISO strings; IndexedDB will happily
+ * store those strings but any consumer calling `.getTime()` on them will
+ * crash (see the item-detail "stuck on Loading" regression). This helper
+ * normalises safely — nulls and undefined pass through unchanged so
+ * optional fields like `dismissedUntil` stay null.
+ */
+function coerceDate(value: unknown): Date | null {
+  if (value == null) return null;
+  if (value instanceof Date) return value;
+  if (typeof value === 'string' || typeof value === 'number') {
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  return null;
+}
+
+function requireDate(value: unknown, fallback: Date = new Date(0)): Date {
+  return coerceDate(value) ?? fallback;
+}
+
+/**
+ * Rehydrate all Date fields across the backup payload.
+ *
+ * JSON round-tripping a BackupData loses Date types. This function must be
+ * called before `bulkAdd`-ing rows back into Dexie so that IndexedDB stores
+ * real Date objects and downstream `.getTime()` calls never crash.
+ */
+export function rehydrateBackupDates(data: BackupData): BackupData {
+  return {
+    ...data,
+    categories: data.categories.map((c) => ({
+      ...c,
+      createdAt: requireDate(c.createdAt),
+      updatedAt: requireDate(c.updatedAt),
+    })),
+    items: data.items.map((i) => ({
+      ...i,
+      dismissedUntil: coerceDate(i.dismissedUntil),
+      createdAt: requireDate(i.createdAt),
+      updatedAt: requireDate(i.updatedAt),
+    })),
+    itemFields: data.itemFields.map((f) => ({
+      ...f,
+      createdAt: requireDate(f.createdAt),
+      updatedAt: requireDate(f.updatedAt),
+    })),
+    reminders: data.reminders.map((r) => ({
+      ...r,
+      lastNotifiedAt: coerceDate(r.lastNotifiedAt),
+      createdAt: requireDate(r.createdAt),
+    })),
+    history: data.history.map((h) => ({
+      ...h,
+      changedAt: requireDate(h.changedAt),
+    })),
+  };
+}
+
+/**
  * Check if backup needs migration and apply transforms.
- * Currently a no-op since we're at schema v1 — ready for future versions.
  */
 export function migrateBackupData(data: BackupData): BackupData {
   // Schema v1 → current: no migration needed
   if (data.schemaVersion >= CURRENT_SCHEMA_VERSION) {
-    return data;
+    return rehydrateBackupDates(data);
   }
 
   // V1 → V2: Add dismissedUntil to items, changeType to history
@@ -77,7 +136,8 @@ export function migrateBackupData(data: BackupData): BackupData {
     } as BackupData;
   }
 
-  return { ...data, schemaVersion: CURRENT_SCHEMA_VERSION };
+  // Always rehydrate Date fields before handing data back to Dexie.
+  return rehydrateBackupDates({ ...data, schemaVersion: CURRENT_SCHEMA_VERSION });
 }
 
 /**

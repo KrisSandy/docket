@@ -99,5 +99,52 @@ export class HomeDocketDB extends Dexie {
         }),
       ]);
     });
+
+    // V3: Heal rows that have Date fields persisted as strings or numbers.
+    //
+    // BUG: before this version, the restore path (use-backup.ts) bulk-added
+    // rows straight out of JSON.parse, which turns Dates into ISO strings.
+    // Those strings were then stored in IndexedDB and subsequently crashed
+    // any consumer that called `.getTime()` on them (see the item-detail
+    // "stuck on Loading..." incident caused by getHistoryForItem).
+    //
+    // This upgrade walks every table with Date-typed fields and coerces the
+    // value to a real Date. It is safe to re-run — Date instances pass
+    // through untouched.
+    this.version(3).upgrade((tx) => {
+      const coerce = (v: unknown): Date | null => {
+        if (v == null) return null;
+        if (v instanceof Date) return v;
+        if (typeof v === 'string' || typeof v === 'number') {
+          const d = new Date(v);
+          return Number.isNaN(d.getTime()) ? null : d;
+        }
+        return null;
+      };
+      const required = (v: unknown): Date => coerce(v) ?? new Date(0);
+
+      return Promise.all([
+        tx.table('categories').toCollection().modify((row) => {
+          row.createdAt = required(row.createdAt);
+          row.updatedAt = required(row.updatedAt);
+        }),
+        tx.table('items').toCollection().modify((row) => {
+          row.createdAt = required(row.createdAt);
+          row.updatedAt = required(row.updatedAt);
+          row.dismissedUntil = coerce(row.dismissedUntil);
+        }),
+        tx.table('itemFields').toCollection().modify((row) => {
+          row.createdAt = required(row.createdAt);
+          row.updatedAt = required(row.updatedAt);
+        }),
+        tx.table('reminders').toCollection().modify((row) => {
+          row.createdAt = required(row.createdAt);
+          row.lastNotifiedAt = coerce(row.lastNotifiedAt);
+        }),
+        tx.table('history').toCollection().modify((row) => {
+          row.changedAt = required(row.changedAt);
+        }),
+      ]);
+    });
   }
 }

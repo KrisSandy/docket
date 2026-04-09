@@ -85,7 +85,6 @@ export default function ItemDetailPage() {
     } catch (err) {
       // Defensive: any Dexie / serialization error must surface instead of
       // leaving the screen stuck on "Loading..." (seen on Android webview).
-      // eslint-disable-next-line no-console
       console.error('[item-detail] Failed to load item', err);
       setLoadError(
         err instanceof Error ? err.message : 'Something went wrong loading this item.'
