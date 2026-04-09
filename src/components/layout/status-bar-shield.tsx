@@ -25,7 +25,7 @@ export function StatusBarShield() {
 
   return (
     <div
-      className="safe-top fixed inset-x-0 top-0 z-50 bg-background"
+      className="safe-top fixed inset-x-0 top-0 z-[100] bg-background"
       aria-hidden="true"
     />
   );

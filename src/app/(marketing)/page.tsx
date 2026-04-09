@@ -12,6 +12,8 @@ import {
   CheckCircle2,
   Smartphone,
 } from 'lucide-react';
+import { MarketingGate } from '@/components/marketing/marketing-gate';
+import { OpenAppButton } from '@/components/marketing/open-app-button';
 
 export const metadata: Metadata = {
   title: 'HomeDocket — Track Your Household Deadlines',
@@ -113,7 +115,7 @@ const steps = [
 
 export default function LandingPage() {
   return (
-    <>
+    <MarketingGate>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -121,17 +123,17 @@ export default function LandingPage() {
 
       <div className="min-h-screen bg-background text-foreground">
         {/* Nav */}
-        <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+        <nav
+          className="sticky z-50 border-b border-border bg-background backdrop-blur-md"
+          style={{ top: 'env(safe-area-inset-top, 0px)' }}
+        >
           <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
             <Link href="/" className="text-[18px] font-semibold tracking-tight">
               HomeDocket
             </Link>
-            <Link
-              href="/dashboard"
-              className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-[13px] font-medium text-primary-foreground transition-opacity hover:opacity-90"
-            >
+            <OpenAppButton className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-[13px] font-medium text-primary-foreground transition-opacity hover:opacity-90">
               Open App
-            </Link>
+            </OpenAppButton>
           </div>
         </nav>
 
@@ -149,13 +151,10 @@ export default function LandingPage() {
               place and nudges you before anything slips.
             </p>
             <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <Link
-                href="/dashboard"
-                className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-[15px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 sm:w-auto"
-              >
+              <OpenAppButton className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-6 text-[15px] font-semibold text-primary-foreground transition-opacity hover:opacity-90 sm:w-auto">
                 Get HomeDocket Free
                 <ArrowRight className="h-4 w-4" />
-              </Link>
+              </OpenAppButton>
             </div>
             <p className="mt-3 text-[13px] text-muted-foreground">
               No sign-up required. Your data stays on your device.
@@ -273,13 +272,10 @@ export default function LandingPage() {
             <p className="mt-2 text-[15px] opacity-90">
               Add your first item in under a minute. Free forever, no strings attached.
             </p>
-            <Link
-              href="/dashboard"
-              className="mt-6 inline-flex h-12 items-center gap-2 rounded-xl bg-primary-foreground px-6 text-[15px] font-semibold text-primary transition-opacity hover:opacity-90"
-            >
+            <OpenAppButton className="mt-6 inline-flex h-12 items-center gap-2 rounded-xl bg-primary-foreground px-6 text-[15px] font-semibold text-primary transition-opacity hover:opacity-90">
               Get Started Now
               <ArrowRight className="h-4 w-4" />
-            </Link>
+            </OpenAppButton>
           </div>
         </section>
 
@@ -312,6 +308,6 @@ export default function LandingPage() {
           </div>
         </footer>
       </div>
-    </>
+    </MarketingGate>
   );
 }

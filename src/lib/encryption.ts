@@ -25,6 +25,31 @@ export interface EncryptedPayload {
 }
 
 /**
+ * Structured validation result for encrypted backup payloads.
+ * The `reason` code lets callers show actionable error messages
+ * instead of a single generic "not a valid backup file" string.
+ */
+export type EncryptedPayloadValidation =
+  | { valid: true }
+  | { valid: false; reason: 'empty' | 'not_json' | 'missing_fields' };
+
+/**
+ * Normalize a backup file's raw contents before JSON parsing.
+ *
+ * Real-world backup files picked up via AirDrop, email, cloud sync,
+ * Android's Downloads provider, or a phone→laptop transfer can pick
+ * up a UTF-8 BOM (`\uFEFF`) or surrounding whitespace/newlines.
+ * `JSON.parse` treats both as syntax errors, so without this the
+ * file validates as "not a valid HomeDocket backup file" even though
+ * the payload underneath is perfectly fine.
+ */
+function stripBomAndTrim(input: string): string {
+  if (!input) return input;
+  const withoutBom = input.charCodeAt(0) === 0xfeff ? input.slice(1) : input;
+  return withoutBom.trim();
+}
+
+/**
  * Derive an AES-256-GCM key from a passphrase using PBKDF2.
  */
 async function deriveKey(passphrase: string, salt: Uint8Array): Promise<CryptoKey> {
@@ -116,14 +141,24 @@ export async function decryptData(encryptedJson: string, passphrase: string): Pr
     throw new Error('Passphrase is required for decryption');
   }
 
+  const normalized = stripBomAndTrim(encryptedJson);
+
+  if (!normalized) {
+    throw new Error('Invalid backup file format: file is empty');
+  }
+
   let payload: EncryptedPayload;
   try {
-    payload = JSON.parse(encryptedJson) as EncryptedPayload;
+    payload = JSON.parse(normalized) as EncryptedPayload;
   } catch {
     throw new Error('Invalid backup file format');
   }
 
-  if (!payload.salt || !payload.iv || !payload.ciphertext) {
+  if (
+    typeof payload?.salt !== 'string' ||
+    typeof payload?.iv !== 'string' ||
+    typeof payload?.ciphertext !== 'string'
+  ) {
     throw new Error('Invalid backup file format: missing required fields');
   }
 
@@ -147,18 +182,44 @@ export async function decryptData(encryptedJson: string, passphrase: string): Pr
 }
 
 /**
- * Validate that an encrypted payload has the expected structure.
+ * Validate that an encrypted payload has the expected envelope structure
+ * and return a structured reason so callers can show actionable errors.
+ *
+ * Tolerates a leading UTF-8 BOM and surrounding whitespace — these are
+ * commonly introduced when backup files travel through email, cloud
+ * sync, or Android's Downloads provider between phone and laptop.
+ *
  * Does NOT attempt decryption — just checks the envelope.
  */
-export function isValidEncryptedPayload(data: string): boolean {
-  try {
-    const parsed = JSON.parse(data) as Record<string, unknown>;
-    return (
-      typeof parsed.salt === 'string' &&
-      typeof parsed.iv === 'string' &&
-      typeof parsed.ciphertext === 'string'
-    );
-  } catch {
-    return false;
+export function validateEncryptedPayload(data: string): EncryptedPayloadValidation {
+  const normalized = stripBomAndTrim(data ?? '');
+
+  if (!normalized) {
+    return { valid: false, reason: 'empty' };
   }
+
+  let parsed: Record<string, unknown>;
+  try {
+    parsed = JSON.parse(normalized) as Record<string, unknown>;
+  } catch {
+    return { valid: false, reason: 'not_json' };
+  }
+
+  if (
+    typeof parsed?.salt !== 'string' ||
+    typeof parsed?.iv !== 'string' ||
+    typeof parsed?.ciphertext !== 'string'
+  ) {
+    return { valid: false, reason: 'missing_fields' };
+  }
+
+  return { valid: true };
+}
+
+/**
+ * Boolean convenience wrapper around `validateEncryptedPayload`.
+ * Kept for call sites that only need a yes/no answer.
+ */
+export function isValidEncryptedPayload(data: string): boolean {
+  return validateEncryptedPayload(data).valid;
 }

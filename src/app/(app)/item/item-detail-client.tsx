@@ -38,50 +38,76 @@ export default function ItemDetailPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [categoryName, setCategoryName] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
-    const [itemData, fieldsData, reminders, history] = await Promise.all([
-      getItem(id),
-      getFieldsForItem(id),
-      getReminderSummary(id),
-      getHistoryForItem(id),
-    ]);
+    setLoadError(null);
+    try {
+      const [itemData, fieldsData, reminders, history] = await Promise.all([
+        getItem(id),
+        getFieldsForItem(id),
+        getReminderSummary(id),
+        getHistoryForItem(id),
+      ]);
 
-    if (!itemData) {
-      router.push('/dashboard');
-      return;
+      if (!itemData) {
+        // Item no longer exists — bounce back to dashboard.
+        // Stop loading first so we don't render "Loading..." forever if
+        // navigation is delayed (e.g. on native webview history stacks).
+        setIsLoading(false);
+        router.push('/dashboard');
+        return;
+      }
+
+      // Look up category name for template field options
+      const category = await db.categories.get(itemData.categoryId);
+      setCategoryName(category?.name ?? '');
+
+      setItem(itemData);
+      setFields(fieldsData);
+      setReminderSummaries(reminders);
+      setHistoryEntries(history);
+
+      // Calculate display status (respect dismissal)
+      const isDismissed = itemData.dismissedUntil !== null
+        && itemData.dismissedUntil !== undefined
+        && itemData.dismissedUntil > new Date();
+      if (isDismissed) {
+        setDisplayStatus('ok');
+      } else {
+        const dateValues = fieldsData
+          .filter((f) => f.fieldType === 'date')
+          .map((f) => f.fieldValue);
+        const earliest = getEarliestDeadline(dateValues);
+        const days = earliest ? daysUntilDate(earliest) : null;
+        setDisplayStatus(calculateStatus(days));
+      }
+    } catch (err) {
+      // Defensive: any Dexie / serialization error must surface instead of
+      // leaving the screen stuck on "Loading..." (seen on Android webview).
+      // eslint-disable-next-line no-console
+      console.error('[item-detail] Failed to load item', err);
+      setLoadError(
+        err instanceof Error ? err.message : 'Something went wrong loading this item.'
+      );
+    } finally {
+      setIsLoading(false);
     }
-
-    // Look up category name for template field options
-    const category = await db.categories.get(itemData.categoryId);
-    setCategoryName(category?.name ?? '');
-
-    setItem(itemData);
-    setFields(fieldsData);
-    setReminderSummaries(reminders);
-    setHistoryEntries(history);
-
-    // Calculate display status (respect dismissal)
-    const isDismissed = itemData.dismissedUntil !== null
-      && itemData.dismissedUntil !== undefined
-      && itemData.dismissedUntil > new Date();
-    if (isDismissed) {
-      setDisplayStatus('ok');
-    } else {
-      const dateValues = fieldsData
-        .filter((f) => f.fieldType === 'date')
-        .map((f) => f.fieldValue);
-      const earliest = getEarliestDeadline(dateValues);
-      const days = earliest ? daysUntilDate(earliest) : null;
-      setDisplayStatus(calculateStatus(days));
-    }
-
-    setIsLoading(false);
   }, [id, getItem, getFieldsForItem, getReminderSummary, getHistoryForItem, router]);
 
   useEffect(() => {
     void loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  // Always mount the item detail page scrolled to the top.
+  // Next.js App Router scroll restoration is unreliable when navigating
+  // between routes whose content heights change after async data loads
+  // (dashboard → item?id=xxx), so we force the reset here.
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.scrollTo(0, 0);
+    }
   }, [id]);
 
   const handleArchive = async () => {
@@ -95,10 +121,34 @@ export default function ItemDetailPage() {
     loadData();
   };
 
+  const handleRetry = () => {
+    setIsLoading(true);
+    void loadData();
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
         <p className="text-[15px] text-muted-foreground">Loading...</p>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div>
+        <BackButton href="/dashboard" label="Dashboard" />
+        <div className="mt-8 rounded-xl border border-border bg-card p-6 text-center">
+          <h1 className="text-[18px] font-semibold">Couldn&apos;t load this item</h1>
+          <p className="mt-2 text-[13px] text-muted-foreground">{loadError}</p>
+          <button
+            type="button"
+            onClick={handleRetry}
+            className="mt-4 min-h-[44px] rounded-xl bg-primary px-5 py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            Try again
+          </button>
+        </div>
       </div>
     );
   }

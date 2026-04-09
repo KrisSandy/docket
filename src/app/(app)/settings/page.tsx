@@ -27,7 +27,7 @@ import { saveAndShareFile } from '@/lib/native-file';
 import { useBiometric } from '@/hooks/use-biometric';
 import { useNotificationSettings } from '@/hooks/use-notification-settings';
 import { AndroidNotificationHelp } from '@/components/items/android-notification-help';
-import { isValidEncryptedPayload } from '@/lib/encryption';
+import { validateEncryptedPayload } from '@/lib/encryption';
 import { seedDefaultCategories } from '@/db/seed';
 import { seedTestNotifications, clearTestNotifications } from '@/lib/seed-test-notifications';
 
@@ -250,8 +250,19 @@ export default function SettingsPage() {
     try {
       const content = await restoreFile.text();
 
-      if (!isValidEncryptedPayload(content)) {
-        setRestoreError('This does not appear to be a valid HomeDocket backup file');
+      const validation = validateEncryptedPayload(content);
+      if (!validation.valid) {
+        // Give the user a reason they can actually act on instead of
+        // the previous generic "not a valid HomeDocket backup file".
+        const messages: Record<typeof validation.reason, string> = {
+          empty:
+            'This backup file is empty. Please select the .hdbackup file you exported from HomeDocket.',
+          not_json:
+            'This file doesn\u2019t look like a HomeDocket backup. Make sure you selected the .hdbackup file (not a screenshot, photo, or other document) and that it wasn\u2019t modified during transfer.',
+          missing_fields:
+            'This file is missing the fields a HomeDocket backup needs. It may be corrupted or from a different app.',
+        };
+        setRestoreError(messages[validation.reason]);
         setIsRestoring(false);
         setShowRestoreConfirm(false);
         return;
@@ -296,7 +307,12 @@ export default function SettingsPage() {
     setDeleteConfirmText('');
     // Re-seed default categories so app isn't broken
     await seedDefaultCategories();
-    router.push('/dashboard');
+    // Navigate to marketing root. On native this re-triggers the
+    // first-launch marketing page because `deleteAllData` cleared
+    // the `has_seen_marketing` flag from the settings table. On web
+    // this simply returns the user to the landing page, which is a
+    // sensible "fresh start" state.
+    router.push('/');
   };
 
   const handleBiometricToggle = async () => {
