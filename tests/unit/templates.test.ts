@@ -23,8 +23,8 @@ describe('getTemplateFields', () => {
     expect(fields).toHaveLength(12);
   });
 
-  it('returns 8 shared fields for Utilities (no service type)', () => {
-    expect(getTemplateFields('Utilities')).toHaveLength(8);
+  it('returns 9 shared fields for Utilities (no service type)', () => {
+    expect(getTemplateFields('Utilities')).toHaveLength(9);
   });
 
   it('returns 9 fields for Housing', () => {
@@ -334,41 +334,41 @@ describe('SERVICE_TYPE_FIELDS', () => {
 
   it('electricity fields include shared + specific fields', () => {
     const fields = SERVICE_TYPE_FIELDS.electricity;
-    // Shared: 8, Electricity-specific: 3 (standing charge, unit cost, MPRN)
-    expect(fields).toHaveLength(11);
+    // Shared: 9, Electricity-specific: 3 (standing charge, unit cost, MPRN)
+    expect(fields).toHaveLength(12);
     expect(fields.find((f) => f.fieldKey === 'provider')).toBeDefined();
     expect(fields.find((f) => f.fieldKey === 'mprn')).toBeDefined();
   });
 
   it('gas fields include shared + specific fields', () => {
     const fields = SERVICE_TYPE_FIELDS.gas;
-    // Shared: 8, Gas-specific: 3 (standing charge, unit cost, GPRN)
-    expect(fields).toHaveLength(11);
+    // Shared: 9, Gas-specific: 3 (standing charge, unit cost, GPRN)
+    expect(fields).toHaveLength(12);
     expect(fields.find((f) => f.fieldKey === 'gprn')).toBeDefined();
   });
 
   it('broadband fields include download/upload speed', () => {
     const fields = SERVICE_TYPE_FIELDS.broadband;
-    expect(fields).toHaveLength(12);
+    expect(fields).toHaveLength(13);
     expect(fields.find((f) => f.fieldKey === 'download_speed')).toBeDefined();
     expect(fields.find((f) => f.fieldKey === 'upload_speed')).toBeDefined();
   });
 
   it('mobile fields include device-specific fields', () => {
     const fields = SERVICE_TYPE_FIELDS.mobile;
-    expect(fields).toHaveLength(12);
+    expect(fields).toHaveLength(13);
     expect(fields.find((f) => f.fieldKey === 'device_on_contract')).toBeDefined();
   });
 
   it('tv_streaming fields include package tier', () => {
     const fields = SERVICE_TYPE_FIELDS.tv_streaming;
-    expect(fields).toHaveLength(10);
+    expect(fields).toHaveLength(11);
     expect(fields.find((f) => f.fieldKey === 'package_tier')).toBeDefined();
   });
 
   it('water fields include standing charge with flat-rate note', () => {
     const fields = SERVICE_TYPE_FIELDS.water;
-    expect(fields).toHaveLength(9);
+    expect(fields).toHaveLength(10);
     const standing = fields.find((f) => f.fieldKey === 'standing_charge');
     expect(standing?.helperText).toContain('flat-rate');
   });

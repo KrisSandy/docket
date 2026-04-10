@@ -1,4 +1,5 @@
-import { differenceInDays, format, startOfDay } from 'date-fns';
+import { differenceInDays, format, startOfDay, addMonths, setDate, getDaysInMonth, isBefore, isEqual } from 'date-fns';
+import type { BillingFrequency } from '@/types';
 
 /**
  * Calculate the number of days from today until the given date.
@@ -64,4 +65,76 @@ export function getEarliestDeadline(dateStrings: (string | null)[]): Date | null
     .sort((a, b) => a.getTime() - b.getTime());
 
   return validDates.length > 0 ? validDates[0] : null;
+}
+
+/**
+ * Map billing frequency to the number of months between billing cycles.
+ */
+function frequencyToMonths(frequency: BillingFrequency): number {
+  switch (frequency) {
+    case 'Monthly':
+      return 1;
+    case 'Bi-monthly':
+      return 2;
+    case 'Quarterly':
+      return 3;
+    case 'Annually':
+      return 12;
+  }
+}
+
+/**
+ * Set the day of month on a date, clamping to the last day of that month
+ * if the requested day exceeds the month's length (e.g., day 31 in a 30-day month).
+ */
+function setDayClamped(date: Date, day: number): Date {
+  const maxDay = getDaysInMonth(date);
+  return setDate(date, Math.min(day, maxDay));
+}
+
+/**
+ * Given a billing day (1–31) and frequency, compute the next billing date
+ * on or after `from` (defaults to today).
+ *
+ * Logic:
+ * 1. Try the billing day in the current month.
+ * 2. If that date is in the past, step forward by frequency interval until
+ *    we find a date that is today or in the future.
+ *
+ * For months shorter than the billing day (e.g., day 31 in April),
+ * the date is clamped to the last day of that month.
+ */
+export function getNextBillingDate(
+  dayOfMonth: number,
+  frequency: BillingFrequency,
+  from: Date = new Date()
+): Date {
+  const today = startOfDay(from);
+  const intervalMonths = frequencyToMonths(frequency);
+
+  // Start from the billing day in the current month
+  let candidate = startOfDay(setDayClamped(today, dayOfMonth));
+
+  // If candidate is in the past, jump forward by the frequency interval
+  // until we land on today or a future date.
+  while (isBefore(candidate, today) && !isEqual(candidate, today)) {
+    candidate = startOfDay(setDayClamped(addMonths(candidate, intervalMonths), dayOfMonth));
+  }
+
+  return candidate;
+}
+
+/**
+ * Advance a billing date to the next occurrence after the current one,
+ * based on the frequency interval. Used when a billing date has passed
+ * to auto-compute the next one.
+ */
+export function advanceBillingDate(
+  currentBillingDate: Date,
+  dayOfMonth: number,
+  frequency: BillingFrequency
+): Date {
+  const intervalMonths = frequencyToMonths(frequency);
+  const next = addMonths(currentBillingDate, intervalMonths);
+  return startOfDay(setDayClamped(next, dayOfMonth));
 }

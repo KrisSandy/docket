@@ -36,8 +36,6 @@ export interface CategoryTemplate {
 }
 
 export const BILLING_FREQUENCY_OPTIONS = [
-  'Weekly',
-  'Fortnightly',
   'Monthly',
   'Bi-monthly',
   'Quarterly',
@@ -56,6 +54,10 @@ export interface TemplateField {
   options?: readonly string[];
   min?: number;
   max?: number;
+  /** When true, this field is auto-computed from other fields and hidden from edit forms. */
+  computed?: boolean;
+  /** Field key(s) this field depends on — used to trigger recomputation. */
+  dependsOn?: string[];
 }
 
 /** A field snippet displayed on dashboard cards */

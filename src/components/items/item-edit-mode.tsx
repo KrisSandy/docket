@@ -6,8 +6,10 @@ import { useItemFields } from '@/hooks/use-item-fields';
 import { FieldEditor } from '@/components/items/field-editor';
 import { AddCustomFieldDialog } from '@/components/items/add-custom-field-dialog';
 import { getTemplateFields } from '@/lib/templates';
+import { getNextBillingDate } from '@/lib/dates';
 import type { Item, ItemField } from '@/db/schema';
-import type { FieldType, ServiceType } from '@/types';
+import type { FieldType, ServiceType, BillingFrequency } from '@/types';
+import { BILLING_FREQUENCY_OPTIONS } from '@/types';
 
 interface ItemEditModeProps {
   item: Item;
@@ -48,6 +50,10 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
     templateFields
       .filter((tf) => tf.max !== undefined)
       .map((tf) => [tf.fieldKey, tf.max!])
+  );
+  // Track computed fields so we can hide them from the form and auto-fill on save
+  const computedFieldKeys = new Set(
+    templateFields.filter((tf) => tf.computed).map((tf) => tf.fieldKey)
   );
 
   const [fieldStates, setFieldStates] = useState<FieldState[]>(() =>
@@ -93,13 +99,51 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
     return Object.keys(newErrors).length === 0;
   };
 
+  /**
+   * Auto-compute billing_date from billing_day + billing_frequency.
+   * Mutates fieldStates in-place so the computed value gets saved.
+   */
+  const computeBillingDate = (states: FieldState[]): FieldState[] => {
+    const freqField = states.find((f) => f.fieldKey === 'billing_frequency');
+    const dayField = states.find((f) => f.fieldKey === 'billing_day');
+    const dateField = states.find((f) => f.fieldKey === 'billing_date');
+
+    if (!freqField || !dayField || !dateField) return states;
+
+    const frequency = freqField.value as BillingFrequency;
+    const day = parseInt(dayField.value, 10);
+
+    if (
+      !frequency ||
+      !BILLING_FREQUENCY_OPTIONS.includes(frequency as BillingFrequency) ||
+      isNaN(day) ||
+      day < 1 ||
+      day > 31
+    ) {
+      // Clear billing_date if inputs are incomplete
+      return states.map((f) =>
+        f.fieldKey === 'billing_date' ? { ...f, value: '' } : f
+      );
+    }
+
+    const nextDate = getNextBillingDate(day, frequency);
+    const isoDate = nextDate.toISOString().split('T')[0]; // YYYY-MM-DD
+
+    return states.map((f) =>
+      f.fieldKey === 'billing_date' ? { ...f, value: isoDate } : f
+    );
+  };
+
   const handleSave = async () => {
     if (!validate()) return;
 
     setIsSaving(true);
     try {
-      // Save only changed fields
-      const changedFields = fieldStates.filter(
+      // Auto-compute any computed fields before saving
+      const finalStates = computeBillingDate(fieldStates);
+
+      // Save only changed fields (including auto-computed ones)
+      const changedFields = finalStates.filter(
         (f) => f.value !== f.originalValue
       );
 
@@ -166,22 +210,24 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
         Edit {item.title}
       </h1>
 
-      {/* Field Editors */}
+      {/* Field Editors — computed fields are hidden (auto-filled on save) */}
       <div className="mt-6 rounded-xl border border-border bg-card px-4">
-        {fieldStates.map((field) => (
-          <FieldEditor
-            key={field.id}
-            label={field.label}
-            value={field.value}
-            fieldType={field.fieldType}
-            isRequired={field.isTemplateField}
-            onChange={(value) => handleFieldChange(field.id, value)}
-            error={errors[field.id]}
-            options={fieldOptionsMap.get(field.fieldKey)}
-            min={fieldMinMap.get(field.fieldKey)}
-            max={fieldMaxMap.get(field.fieldKey)}
-          />
-        ))}
+        {fieldStates
+          .filter((field) => !computedFieldKeys.has(field.fieldKey))
+          .map((field) => (
+            <FieldEditor
+              key={field.id}
+              label={field.label}
+              value={field.value}
+              fieldType={field.fieldType}
+              isRequired={field.isTemplateField}
+              onChange={(value) => handleFieldChange(field.id, value)}
+              error={errors[field.id]}
+              options={fieldOptionsMap.get(field.fieldKey)}
+              min={fieldMinMap.get(field.fieldKey)}
+              max={fieldMaxMap.get(field.fieldKey)}
+            />
+          ))}
       </div>
 
       {/* Add Custom Field Button */}

@@ -239,6 +239,7 @@ export default function ItemDetailPage() {
               label={field.label}
               value={field.fieldValue}
               fieldType={field.fieldType}
+              fieldKey={field.fieldKey}
               trailing={
                 field.fieldType === 'date' && item ? (
                   <DateReminderButton

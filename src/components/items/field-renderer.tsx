@@ -2,6 +2,16 @@ import type { FieldType } from '@/types';
 import { formatEUR } from '@/lib/currency';
 import { formatDate, daysUntilDate, formatCountdown } from '@/lib/dates';
 
+/**
+ * Format a day number with ordinal suffix: 1 → "1st", 2 → "2nd", 15 → "15th"
+ */
+function formatOrdinal(day: number): string {
+  const suffixes = ['th', 'st', 'nd', 'rd'];
+  const mod100 = day % 100;
+  const suffix = (mod100 >= 11 && mod100 <= 13) ? 'th' : (suffixes[day % 10] ?? 'th');
+  return `${day}${suffix}`;
+}
+
 interface FieldRendererProps {
   label: string;
   value: string | null;
@@ -9,9 +19,11 @@ interface FieldRendererProps {
   className?: string;
   /** Optional trailing element — used to render a reminder button next to date fields. */
   trailing?: React.ReactNode;
+  /** The field key — used for field-specific display formatting (e.g., billing_day). */
+  fieldKey?: string;
 }
 
-function formatFieldValue(value: string | null, fieldType: FieldType): string {
+function formatFieldValue(value: string | null, fieldType: FieldType, fieldKey?: string): string {
   if (value === null || value === '') return '—';
 
   switch (fieldType) {
@@ -29,15 +41,23 @@ function formatFieldValue(value: string | null, fieldType: FieldType): string {
       return `${value}%`;
     case 'url':
       return value;
-    case 'number':
+    case 'number': {
+      if (fieldKey === 'billing_day') {
+        const day = parseInt(value, 10);
+        if (!isNaN(day) && day >= 1 && day <= 31) {
+          return `${formatOrdinal(day)} of each month`;
+        }
+      }
+      return value;
+    }
     case 'text':
     default:
       return value;
   }
 }
 
-export function FieldRenderer({ label, value, fieldType, className = '', trailing }: FieldRendererProps) {
-  const formattedValue = formatFieldValue(value, fieldType);
+export function FieldRenderer({ label, value, fieldType, className = '', trailing, fieldKey }: FieldRendererProps) {
+  const formattedValue = formatFieldValue(value, fieldType, fieldKey);
   const isUrl = fieldType === 'url' && value !== null && value !== '';
 
   return (

@@ -78,7 +78,7 @@ describe('addMissingTemplateFields', () => {
 
   it('adds service-type-specific fields for Electricity', async () => {
     const count = await addMissingTemplateFields('item-5', 'Utilities', 'electricity');
-    // Shared: 8, Electricity-specific: 3
-    expect(count).toBe(11);
+    // Shared: 9 (incl. billing_day + computed billing_date), Electricity-specific: 3
+    expect(count).toBe(12);
   });
 });

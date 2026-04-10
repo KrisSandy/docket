@@ -9,7 +9,9 @@ import { BackButton } from '@/components/layout/back-button';
 import { FieldEditor } from '@/components/items/field-editor';
 import { ServiceTypePicker } from '@/components/items/service-type-picker';
 import { getTemplateFields, hasServiceTypes, getServiceTypes } from '@/lib/templates';
-import type { TemplateField, FieldType, ServiceType } from '@/types';
+import { getNextBillingDate } from '@/lib/dates';
+import type { TemplateField, FieldType, ServiceType, BillingFrequency } from '@/types';
+import { BILLING_FREQUENCY_OPTIONS } from '@/types';
 
 interface FormFieldState {
   fieldKey: string;
@@ -21,6 +23,7 @@ interface FormFieldState {
   options?: readonly string[];
   min?: number;
   max?: number;
+  computed?: boolean;
 }
 
 export default function AddItemFormPage() {
@@ -57,6 +60,7 @@ export default function AddItemFormPage() {
         options: tf.options,
         min: tf.min,
         max: tf.max,
+        computed: tf.computed,
       }))
     );
   }, [categoryName, selectedServiceType]);
@@ -69,6 +73,37 @@ export default function AddItemFormPage() {
 
   const handleServiceTypeSelect = (type: ServiceType) => {
     setSelectedServiceType(type);
+  };
+
+  /**
+   * Auto-compute billing_date from billing_day + billing_frequency.
+   */
+  const computeBillingDate = (states: FormFieldState[]): FormFieldState[] => {
+    const freqField = states.find((f) => f.fieldKey === 'billing_frequency');
+    const dayField = states.find((f) => f.fieldKey === 'billing_day');
+    const dateField = states.find((f) => f.fieldKey === 'billing_date');
+
+    if (!freqField || !dayField || !dateField) return states;
+
+    const frequency = freqField.value as BillingFrequency;
+    const day = parseInt(dayField.value, 10);
+
+    if (
+      !frequency ||
+      !BILLING_FREQUENCY_OPTIONS.includes(frequency as BillingFrequency) ||
+      isNaN(day) ||
+      day < 1 ||
+      day > 31
+    ) {
+      return states;
+    }
+
+    const nextDate = getNextBillingDate(day, frequency);
+    const isoDate = nextDate.toISOString().split('T')[0];
+
+    return states.map((f) =>
+      f.fieldKey === 'billing_date' ? { ...f, value: isoDate } : f
+    );
   };
 
   const handleSave = async () => {
@@ -86,6 +121,9 @@ export default function AddItemFormPage() {
     setIsSaving(true);
 
     try {
+      // Auto-compute computed fields before saving
+      const finalStates = computeBillingDate(fieldStates);
+
       // Create the item (this also seeds template fields)
       const itemId = await createItem({
         categoryId,
@@ -94,9 +132,9 @@ export default function AddItemFormPage() {
         serviceType: selectedServiceType,
       });
 
-      // Update fields with entered values
+      // Update fields with entered values (including computed ones)
       const { db } = await import('@/db/database');
-      for (const field of fieldStates) {
+      for (const field of finalStates) {
         if (field.value.trim()) {
           const dbField = await db.itemFields
             .where('[itemId+fieldKey]')
@@ -168,22 +206,24 @@ export default function AddItemFormPage() {
             )}
           </div>
 
-          {/* Template Fields */}
+          {/* Template Fields — computed fields are hidden (auto-filled on save) */}
           <div className="mt-6 rounded-xl border border-border bg-card px-4">
-            {fieldStates.map((field) => (
-              <FieldEditor
-                key={field.fieldKey}
-                label={field.label}
-                value={field.value}
-                fieldType={field.fieldType}
-                onChange={(value) => handleFieldChange(field.fieldKey, value)}
-                helperText={field.helperText}
-                placeholder={field.placeholder}
-                options={field.options}
-                min={field.min}
-                max={field.max}
-              />
-            ))}
+            {fieldStates
+              .filter((field) => !field.computed)
+              .map((field) => (
+                <FieldEditor
+                  key={field.fieldKey}
+                  label={field.label}
+                  value={field.value}
+                  fieldType={field.fieldType}
+                  onChange={(value) => handleFieldChange(field.fieldKey, value)}
+                  helperText={field.helperText}
+                  placeholder={field.placeholder}
+                  options={field.options}
+                  min={field.min}
+                  max={field.max}
+                />
+              ))}
           </div>
 
           {/* Save Button */}

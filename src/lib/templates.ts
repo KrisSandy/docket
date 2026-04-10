@@ -24,8 +24,9 @@ const utilitiesSharedFields: TemplateField[] = [
   { fieldKey: 'payment_method', label: 'Payment Method', fieldType: 'text', sortOrder: 2, placeholder: 'e.g., Direct Debit' },
   { fieldKey: 'monthly_cost', label: 'Monthly Cost', fieldType: 'currency', sortOrder: 3 },
   { fieldKey: 'estimated_annual_cost', label: 'Estimated Annual Cost', fieldType: 'currency', sortOrder: 4 },
-  { fieldKey: 'billing_date', label: 'Billing Date', fieldType: 'date', sortOrder: 5, helperText: 'Next billing date' },
-  { fieldKey: 'billing_frequency', label: 'Billing Frequency', fieldType: 'text', sortOrder: 6, options: BILLING_FREQUENCY_OPTIONS },
+  { fieldKey: 'billing_frequency', label: 'Billing Frequency', fieldType: 'text', sortOrder: 5, options: BILLING_FREQUENCY_OPTIONS },
+  { fieldKey: 'billing_day', label: 'Billing Day', fieldType: 'number', sortOrder: 6, min: 1, max: 31, helperText: 'Day of month you are billed', placeholder: 'e.g., 15' },
+  { fieldKey: 'billing_date', label: 'Next Billing Date', fieldType: 'date', sortOrder: 6.5, computed: true, dependsOn: ['billing_day', 'billing_frequency'], helperText: 'Auto-calculated from billing day and frequency' },
   { fieldKey: 'contract_end', label: 'Contract End Date', fieldType: 'date', sortOrder: 7 },
 ];
 
@@ -177,6 +178,8 @@ export const CARD_SHORT_LABELS: Record<string, string> = {
   cover_amount: 'Cover',
   interest_rate: 'Rate',
   billing_frequency: 'Billing',
+  billing_day: 'Bill Day',
+  billing_date: 'Next Bill',
   estimated_annual_cost: 'Annual Est.',
 };
 

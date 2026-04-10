@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { daysUntilDate, formatCountdown, formatDate, isExpired, getEarliestDeadline } from '@/lib/dates';
+import { format } from 'date-fns';
+import { daysUntilDate, formatCountdown, formatDate, isExpired, getEarliestDeadline, getNextBillingDate, advanceBillingDate } from '@/lib/dates';
+
+/** Format a date as local YYYY-MM-DD (avoids UTC timezone shift in toISOString) */
+function toLocalDate(date: Date): string {
+  return format(date, 'yyyy-MM-dd');
+}
 
 describe('daysUntilDate', () => {
   afterEach(() => {
@@ -124,5 +130,121 @@ describe('getEarliestDeadline', () => {
 
   it('returns null for all null/empty values', () => {
     expect(getEarliestDeadline([null, '', null])).toBeNull();
+  });
+});
+
+describe('getNextBillingDate', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('returns this month when billing day is in the future', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-10'));
+    const result = getNextBillingDate(15, 'Monthly');
+    expect(toLocalDate(result)).toBe('2026-04-15');
+  });
+
+  it('returns today when billing day is today', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-15'));
+    const result = getNextBillingDate(15, 'Monthly');
+    expect(toLocalDate(result)).toBe('2026-04-15');
+  });
+
+  it('returns next month when billing day has passed (monthly)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-20'));
+    const result = getNextBillingDate(15, 'Monthly');
+    expect(toLocalDate(result)).toBe('2026-05-15');
+  });
+
+  it('skips forward by 2 months for bi-monthly when day has passed', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-20'));
+    const result = getNextBillingDate(15, 'Bi-monthly');
+    expect(toLocalDate(result)).toBe('2026-06-15');
+  });
+
+  it('skips forward by 3 months for quarterly when day has passed', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-20'));
+    const result = getNextBillingDate(15, 'Quarterly');
+    expect(toLocalDate(result)).toBe('2026-07-15');
+  });
+
+  it('skips forward by 12 months for annually when day has passed', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-20'));
+    const result = getNextBillingDate(15, 'Annually');
+    expect(toLocalDate(result)).toBe('2027-04-15');
+  });
+
+  it('clamps day 31 to last day of month (April has 30 days)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-01'));
+    const result = getNextBillingDate(31, 'Monthly');
+    expect(toLocalDate(result)).toBe('2026-04-30');
+  });
+
+  it('clamps day 31 in February to 28th', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-02-01'));
+    const result = getNextBillingDate(31, 'Monthly');
+    expect(toLocalDate(result)).toBe('2026-02-28');
+  });
+
+  it('handles year boundary (December → January)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-12-20'));
+    const result = getNextBillingDate(15, 'Monthly');
+    expect(toLocalDate(result)).toBe('2027-01-15');
+  });
+
+  it('handles DST transition (spring forward)', () => {
+    vi.useFakeTimers();
+    // March 29 2026 is DST change in Ireland
+    vi.setSystemTime(new Date('2026-03-28'));
+    const result = getNextBillingDate(30, 'Monthly');
+    expect(toLocalDate(result)).toBe('2026-03-30');
+  });
+});
+
+describe('advanceBillingDate', () => {
+  it('advances monthly by 1 month', () => {
+    const current = new Date('2026-04-15');
+    const result = advanceBillingDate(current, 15, 'Monthly');
+    expect(toLocalDate(result)).toBe('2026-05-15');
+  });
+
+  it('advances bi-monthly by 2 months', () => {
+    const current = new Date('2026-04-15');
+    const result = advanceBillingDate(current, 15, 'Bi-monthly');
+    expect(toLocalDate(result)).toBe('2026-06-15');
+  });
+
+  it('advances quarterly by 3 months', () => {
+    const current = new Date('2026-04-15');
+    const result = advanceBillingDate(current, 15, 'Quarterly');
+    expect(toLocalDate(result)).toBe('2026-07-15');
+  });
+
+  it('advances annually by 12 months', () => {
+    const current = new Date('2026-04-15');
+    const result = advanceBillingDate(current, 15, 'Annually');
+    expect(toLocalDate(result)).toBe('2027-04-15');
+  });
+
+  it('clamps day when advancing to shorter month', () => {
+    const current = new Date('2026-01-31');
+    const result = advanceBillingDate(current, 31, 'Monthly');
+    // February 2026 has 28 days
+    expect(toLocalDate(result)).toBe('2026-02-28');
+  });
+
+  it('handles year boundary', () => {
+    const current = new Date('2026-12-15');
+    const result = advanceBillingDate(current, 15, 'Monthly');
+    expect(toLocalDate(result)).toBe('2027-01-15');
   });
 });
