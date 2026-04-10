@@ -29,7 +29,7 @@ export function NotificationSettingsToggle() {
           <div>
             <p className="text-sm font-medium">Notifications</p>
             <p className="text-xs text-muted-foreground">
-              {effectivelyEnabled ? 'Reminders are active' : 'Reminders are paused'}
+              {effectivelyEnabled ? 'Reminders are active' : 'HomeDocket will not send any reminders'}
             </p>
           </div>
         </div>

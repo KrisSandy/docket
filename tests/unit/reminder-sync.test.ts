@@ -13,6 +13,9 @@ vi.mock('@/lib/notifications', () => ({
   cancelAllNotifications: (...args: unknown[]) => mockCancelAllNotifications(...args),
 }));
 
+vi.mock('@/lib/reminder-preferences', () => ({
+  getNotifyTimeLocal: vi.fn().mockResolvedValue('09:00'),
+}));
 
 vi.mock('@/db/database', () => {
   const reminderData = [
@@ -78,9 +81,9 @@ describe('reminder-sync', () => {
       expect(mockCancelReminder).toHaveBeenCalledWith('rem-2');
       expect(mockCancelReminder).toHaveBeenCalledTimes(2);
 
-      // Should schedule new notifications for each reminder
-      expect(mockScheduleReminder).toHaveBeenCalledWith('rem-1', 'item-1', newDate, 30);
-      expect(mockScheduleReminder).toHaveBeenCalledWith('rem-2', 'item-1', newDate, 7);
+      // Should schedule new notifications for each reminder (with notify time)
+      expect(mockScheduleReminder).toHaveBeenCalledWith('rem-1', 'item-1', newDate, 30, '09:00');
+      expect(mockScheduleReminder).toHaveBeenCalledWith('rem-2', 'item-1', newDate, 7, '09:00');
       expect(mockScheduleReminder).toHaveBeenCalledTimes(2);
     });
 

@@ -5,6 +5,7 @@ import {
   cancelAllRemindersForItem,
   cancelAllNotifications,
 } from '@/lib/notifications';
+import { getNotifyTimeLocal } from '@/lib/reminder-preferences';
 
 /**
  * When a date field is updated, cancel old reminders and schedule new ones
@@ -15,6 +16,7 @@ export async function onDateFieldUpdated(
   fieldKey: string,
   newDate: Date | null
 ): Promise<void> {
+  const notifyTime = await getNotifyTimeLocal();
   const reminders = await db.reminders
     .where('[itemId+fieldKey]')
     .equals([itemId, fieldKey])
@@ -26,7 +28,7 @@ export async function onDateFieldUpdated(
 
     // Schedule new one if date is set and reminder is enabled
     if (newDate && reminder.isEnabled) {
-      await scheduleReminder(reminder.id, itemId, newDate, reminder.daysBefore);
+      await scheduleReminder(reminder.id, itemId, newDate, reminder.daysBefore, notifyTime);
     }
   }
 }
@@ -78,11 +80,12 @@ export async function onItemUnarchived(itemId: string): Promise<void> {
   }
 
   // Schedule notifications for all reminders
+  const notifyTime = await getNotifyTimeLocal();
   const reminders = await db.reminders.where('itemId').equals(itemId).toArray();
   for (const reminder of reminders) {
     const deadlineDate = fieldDateMap.get(reminder.fieldKey);
     if (deadlineDate) {
-      await scheduleReminder(reminder.id, itemId, deadlineDate, reminder.daysBefore);
+      await scheduleReminder(reminder.id, itemId, deadlineDate, reminder.daysBefore, notifyTime);
     }
   }
 }
@@ -122,7 +125,8 @@ export async function rescheduleAllReminders(): Promise<void> {
     }
   }
 
-  // Schedule each reminder
+  // Schedule each reminder at the user's preferred time
+  const notifyTime = await getNotifyTimeLocal();
   for (const reminder of enabledReminders) {
     const deadlineDate = fieldDateMap.get(`${reminder.itemId}:${reminder.fieldKey}`);
     if (deadlineDate) {
@@ -130,7 +134,8 @@ export async function rescheduleAllReminders(): Promise<void> {
         reminder.id,
         reminder.itemId,
         deadlineDate,
-        reminder.daysBefore
+        reminder.daysBefore,
+        notifyTime
       );
     }
   }

@@ -1,5 +1,6 @@
 import { LocalNotifications, type PermissionStatus } from '@capacitor/local-notifications';
 import { subDays, startOfDay, isBefore, isEqual } from 'date-fns';
+import { parseTime, DEFAULT_NOTIFY_TIME } from '@/lib/reminder-preferences';
 
 /**
  * Notification permission state.
@@ -34,24 +35,41 @@ export function buildNotificationId(reminderId: string): number {
 }
 
 /**
- * Calculate the trigger date for a reminder.
- * Returns null if the trigger date is in the past.
+ * Calculate the trigger datetime for a reminder.
+ *
+ * Pins the notification to `notifyTimeLocal` on the computed day,
+ * so users get reminders at a sensible hour instead of midnight.
+ *
+ * Returns `null` if the fully-qualified trigger datetime is in the past.
  *
  * @param deadlineDate - The deadline date
  * @param daysBefore - Number of days before the deadline to trigger
- * @returns The trigger date, or null if it would be in the past
+ * @param notifyTimeLocal - "HH:mm" local time to fire (default "09:00")
+ * @returns The trigger datetime, or null if it would be in the past
  */
 export function calculateTriggerDate(
   deadlineDate: Date,
-  daysBefore: number
+  daysBefore: number,
+  notifyTimeLocal: string = DEFAULT_NOTIFY_TIME
 ): Date | null {
-  const triggerDate = startOfDay(subDays(deadlineDate, daysBefore));
+  const triggerDay = startOfDay(subDays(deadlineDate, daysBefore));
   const today = startOfDay(new Date());
 
-  if (isBefore(triggerDate, today)) {
-    return null; // Past date — skip
+  // If the trigger day is before today, skip entirely.
+  if (isBefore(triggerDay, today)) {
+    return null;
   }
 
+  // Pin the trigger to the user's preferred time on that day.
+  const { hours, minutes } = parseTime(notifyTimeLocal);
+  const triggerDate = new Date(triggerDay);
+  triggerDate.setHours(hours, minutes, 0, 0);
+
+  // If the trigger day is today but the preferred time has already
+  // passed, the caller (scheduleReminder) handles the "now + 10s"
+  // fallback via the existing isTriggerToday branch. We still
+  // return the date so the notification fires today rather than
+  // being silently dropped.
   return triggerDate;
 }
 
@@ -107,28 +125,32 @@ export async function requestPermission(): Promise<NotificationPermissionState> 
  * @param itemId - The item this reminder belongs to (passed in notification extra)
  * @param deadlineDate - The deadline date
  * @param daysBefore - Days before deadline to fire notification
+ * @param notifyTimeLocal - "HH:mm" local time to fire (default "09:00")
  * @returns true if scheduled, false if skipped (past date)
  */
 export async function scheduleReminder(
   reminderId: string,
   itemId: string,
   deadlineDate: Date,
-  daysBefore: number
+  daysBefore: number,
+  notifyTimeLocal: string = DEFAULT_NOTIFY_TIME
 ): Promise<boolean> {
-  const triggerDate = calculateTriggerDate(deadlineDate, daysBefore);
+  const triggerDate = calculateTriggerDate(deadlineDate, daysBefore, notifyTimeLocal);
 
   if (triggerDate === null) {
     return false; // Past date — skip
   }
 
   const notificationId = buildNotificationId(reminderId);
-  // When the trigger date is today, schedule 10 seconds in the future.
-  // Scheduling for exactly `new Date()` can be silently dropped by native
-  // platforms because the timestamp is already in the past by the time the
-  // OS processes the request.
-  const scheduleAt = isTriggerToday(triggerDate)
-    ? new Date(Date.now() + 10_000)
-    : triggerDate;
+  // When the trigger datetime is today but already in the past (user's
+  // preferred time has passed), or the full triggerDate is today, schedule
+  // 10 seconds in the future so native platforms don't silently drop it.
+  let scheduleAt: Date;
+  if (isTriggerToday(triggerDate) && triggerDate.getTime() <= Date.now()) {
+    scheduleAt = new Date(Date.now() + 10_000);
+  } else {
+    scheduleAt = triggerDate;
+  }
 
   try {
     await LocalNotifications.schedule({

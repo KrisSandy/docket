@@ -3,17 +3,20 @@ import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/db/database';
 import type { Reminder } from '@/db/schema';
 import { getDateFieldKeys } from '@/lib/templates';
-import { DEFAULT_REMINDER_INTERVALS } from '@/constants/defaults';
+import { loadPreferences, resolveOffsets } from '@/lib/reminder-preferences';
 import {
   scheduleReminder as scheduleNotification,
   cancelReminder as cancelNotification,
   cancelAllRemindersForItem as cancelAllNotificationsForItem,
   cancelAllNotifications,
 } from '@/lib/notifications';
+import { getNotifyTimeLocal } from '@/lib/reminder-preferences';
 
 export interface ReminderSummary {
   fieldKey: string;
   intervals: number[];
+  /** True when user explicitly chose "no reminders" for this field. */
+  isDisabled: boolean;
 }
 
 export interface ReminderWithSchedule extends Reminder {
@@ -27,20 +30,30 @@ export function useReminders() {
 
   const getReminderSummary = useCallback(async (itemId: string): Promise<ReminderSummary[]> => {
     const reminders = await db.reminders.where('itemId').equals(itemId).toArray();
-    const enabledReminders = reminders.filter((r) => r.isEnabled);
 
-    // Group by fieldKey
-    const grouped = new Map<string, number[]>();
-    for (const r of enabledReminders) {
+    // Group all reminders by fieldKey
+    const grouped = new Map<string, Reminder[]>();
+    for (const r of reminders) {
       const existing = grouped.get(r.fieldKey) ?? [];
-      existing.push(r.daysBefore);
+      existing.push(r);
       grouped.set(r.fieldKey, existing);
     }
 
-    return Array.from(grouped.entries()).map(([fieldKey, intervals]) => ({
-      fieldKey,
-      intervals: intervals.sort((a, b) => b - a),
-    }));
+    return Array.from(grouped.entries()).map(([fieldKey, fieldReminders]) => {
+      const hasSentinel = fieldReminders.some(
+        (r) => r.daysBefore === -1 && !r.isEnabled
+      );
+      const enabledIntervals = fieldReminders
+        .filter((r) => r.isEnabled && r.daysBefore >= 0)
+        .map((r) => r.daysBefore)
+        .sort((a, b) => b - a);
+
+      return {
+        fieldKey,
+        intervals: enabledIntervals,
+        isDisabled: hasSentinel,
+      };
+    });
   }, []);
 
   const createDefaultReminders = useCallback(async (
@@ -48,7 +61,8 @@ export function useReminders() {
     categoryName: string
   ): Promise<void> => {
     const dateFieldKeys = getDateFieldKeys(categoryName);
-    const intervals = DEFAULT_REMINDER_INTERVALS[categoryName] ?? [30, 14, 7];
+    const prefs = await loadPreferences();
+    const intervals = resolveOffsets(prefs, categoryName);
     const now = new Date();
 
     const reminders: Reminder[] = [];
@@ -108,7 +122,8 @@ export function useReminders() {
 
       // Schedule notification if we have a deadline date
       if (deadlineDate) {
-        await scheduleNotification(id, itemId, deadlineDate, daysBefore);
+        const notifyTime = await getNotifyTimeLocal();
+        await scheduleNotification(id, itemId, deadlineDate, daysBefore, notifyTime);
       }
     }
   }, []);
@@ -143,7 +158,82 @@ export function useReminders() {
     });
 
     if (deadlineDate) {
-      await scheduleNotification(id, itemId, deadlineDate, daysBefore);
+      const notifyTime = await getNotifyTimeLocal();
+      await scheduleNotification(id, itemId, deadlineDate, daysBefore, notifyTime);
+    }
+  }, []);
+
+  /**
+   * Disable all reminders for a specific field and plant a sentinel row
+   * (`daysBefore: -1, isEnabled: false`) so that bulk reschedule operations
+   * know the user explicitly opted out — and don't silently re-create defaults.
+   */
+  const disableFieldReminders = useCallback(async (
+    itemId: string,
+    fieldKey: string
+  ): Promise<void> => {
+    // Get all existing reminders for this field
+    const existing = await db.reminders
+      .where('[itemId+fieldKey]')
+      .equals([itemId, fieldKey])
+      .toArray();
+
+    // Cancel notifications and delete rows
+    for (const rem of existing) {
+      await cancelNotification(rem.id);
+      await db.reminders.delete(rem.id);
+    }
+
+    // Plant sentinel
+    await db.reminders.add({
+      id: uuidv4(),
+      itemId,
+      fieldKey,
+      daysBefore: -1,
+      isEnabled: false,
+      lastNotifiedAt: null,
+      createdAt: new Date(),
+    });
+  }, []);
+
+  /**
+   * Replace all reminders for a field with a new set of offsets.
+   * Clears existing rows (including any sentinel), then creates new ones.
+   * Used when the user picks a preset on the item detail screen.
+   */
+  const setFieldReminders = useCallback(async (
+    itemId: string,
+    fieldKey: string,
+    offsets: number[],
+    deadlineDate: Date | null
+  ): Promise<void> => {
+    // Delete all existing for this field
+    const existing = await db.reminders
+      .where('[itemId+fieldKey]')
+      .equals([itemId, fieldKey])
+      .toArray();
+    for (const rem of existing) {
+      await cancelNotification(rem.id);
+      await db.reminders.delete(rem.id);
+    }
+
+    // Create new rows
+    const notifyTime = await getNotifyTimeLocal();
+    const now = new Date();
+    for (const daysBefore of offsets) {
+      const id = uuidv4();
+      await db.reminders.add({
+        id,
+        itemId,
+        fieldKey,
+        daysBefore,
+        isEnabled: true,
+        lastNotifiedAt: null,
+        createdAt: now,
+      });
+      if (deadlineDate) {
+        await scheduleNotification(id, itemId, deadlineDate, daysBefore, notifyTime);
+      }
     }
   }, []);
 
@@ -169,6 +259,7 @@ export function useReminders() {
     itemId: string,
     fieldDateMap: Map<string, Date>
   ): Promise<void> => {
+    const notifyTime = await getNotifyTimeLocal();
     const reminders = await db.reminders.where('itemId').equals(itemId).toArray();
 
     for (const reminder of reminders) {
@@ -178,7 +269,7 @@ export function useReminders() {
       // Schedule new notification if we have the date for this field
       const deadlineDate = fieldDateMap.get(reminder.fieldKey);
       if (deadlineDate && reminder.isEnabled) {
-        await scheduleNotification(reminder.id, itemId, deadlineDate, reminder.daysBefore);
+        await scheduleNotification(reminder.id, itemId, deadlineDate, reminder.daysBefore, notifyTime);
       }
     }
   }, []);
@@ -215,7 +306,8 @@ export function useReminders() {
       }
     }
 
-    // Schedule each reminder
+    // Schedule each reminder at the user's preferred time
+    const notifyTime = await getNotifyTimeLocal();
     for (const reminder of allReminders) {
       if (!activeItemIds.has(reminder.itemId)) continue;
 
@@ -225,7 +317,8 @@ export function useReminders() {
           reminder.id,
           reminder.itemId,
           deadlineDate,
-          reminder.daysBefore
+          reminder.daysBefore,
+          notifyTime
         );
       }
     }
@@ -241,12 +334,13 @@ export function useReminders() {
     // Re-enable all reminders for this item
     const reminders = await db.reminders.where('itemId').equals(itemId).toArray();
 
+    const notifyTime = await getNotifyTimeLocal();
     for (const reminder of reminders) {
       await db.reminders.update(reminder.id, { isEnabled: true });
 
       const deadlineDate = fieldDateMap.get(reminder.fieldKey);
       if (deadlineDate) {
-        await scheduleNotification(reminder.id, itemId, deadlineDate, reminder.daysBefore);
+        await scheduleNotification(reminder.id, itemId, deadlineDate, reminder.daysBefore, notifyTime);
       }
     }
   }, []);
@@ -257,6 +351,8 @@ export function useReminders() {
     createDefaultReminders,
     toggleReminder,
     addCustomReminder,
+    disableFieldReminders,
+    setFieldReminders,
     cancelRemindersForItem,
     rescheduleRemindersForItem,
     rescheduleAllReminders,
@@ -267,6 +363,8 @@ export function useReminders() {
     createDefaultReminders,
     toggleReminder,
     addCustomReminder,
+    disableFieldReminders,
+    setFieldReminders,
     cancelRemindersForItem,
     rescheduleRemindersForItem,
     rescheduleAllReminders,

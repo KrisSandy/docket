@@ -129,6 +129,53 @@ describe('notifications', () => {
       // March 31 minus 1 = March 30 = today
       expect(toLocalDate(result!)).toBe('2026-03-30');
     });
+
+    // --- Time-of-day support ---
+
+    it('defaults to 09:00 when no notifyTimeLocal given', () => {
+      const deadline = new Date('2026-05-01T00:00:00');
+      const result = calculateTriggerDate(deadline, 7);
+      expect(result).not.toBeNull();
+      expect(result!.getHours()).toBe(9);
+      expect(result!.getMinutes()).toBe(0);
+    });
+
+    it('pins to the user-specified time', () => {
+      const deadline = new Date('2026-05-01T00:00:00');
+      const result = calculateTriggerDate(deadline, 7, '18:30');
+      expect(result).not.toBeNull();
+      expect(toLocalDate(result!)).toBe('2026-04-24');
+      expect(result!.getHours()).toBe(18);
+      expect(result!.getMinutes()).toBe(30);
+      expect(result!.getSeconds()).toBe(0);
+    });
+
+    it('pins to 00:00 when user explicitly chooses midnight', () => {
+      const deadline = new Date('2026-05-01T00:00:00');
+      const result = calculateTriggerDate(deadline, 7, '00:00');
+      expect(result).not.toBeNull();
+      expect(result!.getHours()).toBe(0);
+      expect(result!.getMinutes()).toBe(0);
+    });
+
+    it('returns today at the specified time when trigger day is today and time is in the future', () => {
+      // System time is 2026-03-30T12:00:00
+      const deadline = new Date('2026-04-06T00:00:00'); // 7 days away
+      const result = calculateTriggerDate(deadline, 7, '14:00'); // today at 14:00, still in future
+      expect(result).not.toBeNull();
+      expect(toLocalDate(result!)).toBe('2026-03-30');
+      expect(result!.getHours()).toBe(14);
+    });
+
+    it('still returns today even when trigger time has passed (caller handles fallback)', () => {
+      // System time is 2026-03-30T12:00:00
+      const deadline = new Date('2026-04-06T00:00:00'); // 7 days away
+      const result = calculateTriggerDate(deadline, 7, '08:00'); // today at 08:00, already past
+      // Should still return the date — scheduleReminder will use "now + 10s" fallback
+      expect(result).not.toBeNull();
+      expect(toLocalDate(result!)).toBe('2026-03-30');
+      expect(result!.getHours()).toBe(8);
+    });
   });
 
   describe('isTriggerToday', () => {

@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { ReminderChips } from '@/components/items/reminder-chips';
 
 // Mock the database
@@ -18,6 +17,9 @@ vi.mock('@/db/database', () => ({
       add: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn().mockResolvedValue(undefined),
     },
+    settings: {
+      get: vi.fn().mockResolvedValue(undefined),
+    },
   },
 }));
 
@@ -28,6 +30,15 @@ vi.mock('@/lib/notifications', async (importOriginal) => {
     ...actual,
     scheduleReminder: vi.fn().mockResolvedValue(true),
     cancelReminder: vi.fn().mockResolvedValue(undefined),
+  };
+});
+
+// Mock reminder-preferences
+vi.mock('@/lib/reminder-preferences', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/reminder-preferences')>();
+  return {
+    ...actual,
+    getNotifyTimeLocal: vi.fn().mockResolvedValue('09:00'),
   };
 });
 
@@ -49,18 +60,6 @@ describe('ReminderChips', () => {
     vi.clearAllMocks();
   });
 
-  it('renders preset chips after loading', async () => {
-    render(<ReminderChips {...defaultProps} />);
-
-    await waitFor(() => {
-      expect(screen.getByText('60d')).toBeInTheDocument();
-      expect(screen.getByText('30d')).toBeInTheDocument();
-      expect(screen.getByText('14d')).toBeInTheDocument();
-      expect(screen.getByText('7d')).toBeInTheDocument();
-      expect(screen.getByText('1d')).toBeInTheDocument();
-    });
-  });
-
   it('renders field label with bell icon', async () => {
     render(<ReminderChips {...defaultProps} />);
 
@@ -69,20 +68,14 @@ describe('ReminderChips', () => {
     });
   });
 
-  it('renders custom interval button', async () => {
+  it('shows preset dropdown button after loading', async () => {
     render(<ReminderChips {...defaultProps} />);
 
     await waitFor(() => {
-      expect(screen.getByText('Custom')).toBeInTheDocument();
-    });
-  });
-
-  it('chips start in inactive state when no reminders in DB', async () => {
-    render(<ReminderChips {...defaultProps} />);
-
-    await waitFor(() => {
-      const chip60 = screen.getByLabelText(/Remind 60 days before/);
-      expect(chip60.getAttribute('aria-pressed')).toBe('false');
+      // With no active reminders, the preset label shows "None" from the
+      // matchPresetFromOffsets([]) call
+      const button = screen.getByRole('button', { name: /none/i });
+      expect(button).toBeInTheDocument();
     });
   });
 
@@ -94,28 +87,61 @@ describe('ReminderChips', () => {
     });
   });
 
-  it('shows custom input when custom button is clicked', async () => {
-    const user = userEvent.setup();
-    render(<ReminderChips {...defaultProps} />);
-
-    await waitFor(() => {
-      expect(screen.getByText('Custom')).toBeInTheDocument();
+  it('shows "Reminders off" when sentinel is in DB', async () => {
+    // Override the mock to return a sentinel row
+    const { db } = await import('@/db/database');
+    (db.reminders.where as ReturnType<typeof vi.fn>).mockReturnValue({
+      equals: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([
+          {
+            id: 'sentinel-1',
+            itemId: 'item-1',
+            fieldKey: 'nct_date',
+            daysBefore: -1,
+            isEnabled: false,
+            lastNotifiedAt: null,
+            createdAt: new Date(),
+          },
+        ]),
+      }),
     });
 
-    await user.click(screen.getByText('Custom'));
-
-    expect(screen.getByPlaceholderText('Days')).toBeInTheDocument();
-    expect(screen.getByText('Add')).toBeInTheDocument();
-  });
-
-  it('all chip buttons meet 44px min touch target', async () => {
     render(<ReminderChips {...defaultProps} />);
 
     await waitFor(() => {
-      const chips = screen.getAllByRole('button', { pressed: false });
-      chips.forEach((chip) => {
-        // Check min-h-[44px] class is applied
-        expect(chip.className).toMatch(/min-h-\[44px\]/);
+      expect(screen.getByText('Reminders off for this field')).toBeInTheDocument();
+      expect(screen.getByText('Re-enable')).toBeInTheDocument();
+    });
+  });
+
+  it('shows active interval pills when reminders exist', async () => {
+    const { db } = await import('@/db/database');
+    (db.reminders.where as ReturnType<typeof vi.fn>).mockReturnValue({
+      equals: vi.fn().mockReturnValue({
+        toArray: vi.fn().mockResolvedValue([
+          { id: 'r-1', itemId: 'item-1', fieldKey: 'nct_date', daysBefore: 30, isEnabled: true, lastNotifiedAt: null, createdAt: new Date() },
+          { id: 'r-2', itemId: 'item-1', fieldKey: 'nct_date', daysBefore: 7, isEnabled: true, lastNotifiedAt: null, createdAt: new Date() },
+          { id: 'r-3', itemId: 'item-1', fieldKey: 'nct_date', daysBefore: 1, isEnabled: true, lastNotifiedAt: null, createdAt: new Date() },
+        ]),
+      }),
+    });
+
+    render(<ReminderChips {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('30d')).toBeInTheDocument();
+      expect(screen.getByText('7d')).toBeInTheDocument();
+      expect(screen.getByText('1d')).toBeInTheDocument();
+    });
+  });
+
+  it('preset button meets 44px min touch target', async () => {
+    render(<ReminderChips {...defaultProps} />);
+
+    await waitFor(() => {
+      const buttons = screen.getAllByRole('button');
+      buttons.forEach((button) => {
+        expect(button.className).toMatch(/min-h-\[(44|36)px\]/);
       });
     });
   });

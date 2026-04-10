@@ -30,6 +30,16 @@ import { AndroidNotificationHelp } from '@/components/items/android-notification
 import { validateEncryptedPayload } from '@/lib/encryption';
 import { seedDefaultCategories } from '@/db/seed';
 import { seedTestNotifications, clearTestNotifications } from '@/lib/seed-test-notifications';
+import {
+  loadPreferences,
+  savePreferences,
+  isValidTime,
+  type ReminderPreferences,
+} from '@/lib/reminder-preferences';
+import { rescheduleAllReminders } from '@/lib/reminder-sync';
+import { Clock, CalendarClock } from 'lucide-react';
+import { ReminderPresetSheet } from '@/components/settings/reminder-preset-sheet';
+import { formatOffsetsSummary } from '@/constants/reminder-presets';
 
 // ---------- Shared sub-components ----------
 
@@ -110,6 +120,21 @@ function Modal({ children, onClose }: ModalProps) {
   );
 }
 
+/**
+ * Format "HH:mm" into a human-readable 12-hour string with AM/PM.
+ * Falls back to the raw value if parsing fails.
+ */
+function formatTimeDisplay(hhmm: string): string {
+  const parts = hhmm.split(':');
+  if (parts.length !== 2) return hhmm;
+  const h = parseInt(parts[0], 10);
+  const m = parts[1];
+  if (isNaN(h)) return hhmm;
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return `${h12}:${m} ${suffix}`;
+}
+
 // ---------- Main Page ----------
 
 export default function SettingsPage() {
@@ -166,6 +191,11 @@ export default function SettingsPage() {
   const [showDeleteFinalConfirm, setShowDeleteFinalConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
+  // Reminder preferences state
+  const [reminderPrefs, setReminderPrefs] = useState<ReminderPreferences | null>(null);
+  const [reminderTimeSaved, setReminderTimeSaved] = useState(false);
+  const [showGlobalPresetSheet, setShowGlobalPresetSheet] = useState(false);
+
   // Dev tools state
   const [isSeeding, setIsSeeding] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
@@ -185,6 +215,7 @@ export default function SettingsPage() {
     };
     loadSummary();
     getLastBackupDate().then(setLastBackupDate);
+    loadPreferences().then(setReminderPrefs);
   }, [getLastBackupDate]);
 
   // ---------- Handlers ----------
@@ -323,6 +354,24 @@ export default function SettingsPage() {
     }
   };
 
+  const handleReminderTimeChange = async (newTime: string) => {
+    if (!isValidTime(newTime) || !reminderPrefs) return;
+    const updated = { ...reminderPrefs, notifyTimeLocal: newTime };
+    setReminderPrefs(updated);
+    await savePreferences(updated);
+    await rescheduleAllReminders();
+    setReminderTimeSaved(true);
+    setTimeout(() => setReminderTimeSaved(false), 2000);
+  };
+
+  const handleGlobalPresetSelect = async (offsets: number[]) => {
+    if (!reminderPrefs) return;
+    const updated = { ...reminderPrefs, defaultOffsets: offsets };
+    setReminderPrefs(updated);
+    await savePreferences(updated);
+    setShowGlobalPresetSheet(false);
+  };
+
   const handleSeedTestNotifications = async () => {
     setIsSeeding(true);
     setSeedResult(null);
@@ -368,7 +417,7 @@ export default function SettingsPage() {
                 ? 'Loading...'
                 : notificationsEnabled
                   ? 'Reminders are active'
-                  : 'Reminders are paused'}
+                  : 'HomeDocket will not send any reminders'}
             </p>
           </div>
           <button
@@ -388,6 +437,39 @@ export default function SettingsPage() {
             />
           </button>
         </div>
+        {/* Reminder time picker */}
+        {reminderPrefs && (
+          <div className="flex w-full items-center gap-4 px-4 py-4 min-h-[44px]">
+            <div className="text-muted-foreground">
+              <Clock size={20} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] text-foreground">Reminder time</p>
+              <p className="text-[13px] text-muted-foreground mt-0.5">
+                {reminderTimeSaved
+                  ? 'Updated \u2713'
+                  : `Every day at ${formatTimeDisplay(reminderPrefs.notifyTimeLocal)}`}
+              </p>
+            </div>
+            <input
+              type="time"
+              value={reminderPrefs.notifyTimeLocal}
+              onChange={(e) => handleReminderTimeChange(e.target.value)}
+              className="min-h-[44px] rounded-xl border border-border bg-card px-3 py-2 text-[15px] text-foreground"
+              aria-label="Reminder time of day"
+            />
+          </div>
+        )}
+        {/* Default reminder schedule */}
+        {reminderPrefs && (
+          <SettingsRow
+            icon={<CalendarClock size={20} />}
+            label="Default reminder schedule"
+            description={formatOffsetsSummary(reminderPrefs.defaultOffsets)}
+            onClick={() => setShowGlobalPresetSheet(true)}
+          />
+        )}
+        {/* Per-field reminder overrides are set from the item detail screen */}
       </SettingsSection>
 
       {/* Notification warnings */}
@@ -855,6 +937,17 @@ export default function SettingsPage() {
           </div>
         </Modal>
       )}
+
+      {/* ===== Global Reminder Preset Sheet ===== */}
+      {showGlobalPresetSheet && reminderPrefs && (
+        <ReminderPresetSheet
+          currentOffsets={reminderPrefs.defaultOffsets}
+          onSelect={handleGlobalPresetSelect}
+          onClose={() => setShowGlobalPresetSheet(false)}
+          title="Default reminder schedule"
+        />
+      )}
+
     </div>
   );
 }

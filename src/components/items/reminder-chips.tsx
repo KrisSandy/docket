@@ -1,15 +1,21 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Bell, Plus } from 'lucide-react';
+import { Bell, BellOff, ChevronDown } from 'lucide-react';
 import { db } from '@/db/database';
 import type { Reminder } from '@/db/schema';
 import { useReminders } from '@/hooks/use-reminders';
 import { calculateTriggerDate } from '@/lib/notifications';
 import { formatDate } from '@/lib/dates';
+import { DEFAULT_NOTIFY_TIME } from '@/lib/reminder-preferences';
+import { ReminderPresetSheet } from '@/components/settings/reminder-preset-sheet';
+import {
+  formatOffsetsSummary,
+} from '@/constants/reminder-presets';
 
-/** Standard preset intervals offered as toggleable chips */
-const PRESET_INTERVALS = [60, 30, 14, 7, 1];
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
 
 interface ReminderChipsProps {
   itemId: string;
@@ -19,34 +25,58 @@ interface ReminderChipsProps {
   defaultIntervals: number[];
 }
 
+// ---------------------------------------------------------------------------
+// Sentinel detection
+// ---------------------------------------------------------------------------
+
+/** The sentinel `daysBefore` value used to mark "user explicitly chose none". */
+const SENTINEL_DAYS_BEFORE = -1;
+
+function hasSentinel(reminders: Reminder[]): boolean {
+  return reminders.some(
+    (r) => r.daysBefore === SENTINEL_DAYS_BEFORE && !r.isEnabled
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
 export function ReminderChips({
   itemId,
   fieldKey,
   fieldLabel,
   deadlineDate,
-  defaultIntervals,
 }: ReminderChipsProps) {
-  const { toggleReminder, addCustomReminder } = useReminders();
-  const [activeIntervals, setActiveIntervals] = useState<Set<number>>(new Set());
+  const { disableFieldReminders, setFieldReminders } = useReminders();
+  const [activeIntervals, setActiveIntervals] = useState<number[]>([]);
+  const [isDisabled, setIsDisabled] = useState(false); // sentinel = "None"
   const [loading, setLoading] = useState(true);
-  const [showCustomInput, setShowCustomInput] = useState(false);
-  const [customDays, setCustomDays] = useState('');
+  const [notifyTime, setNotifyTime] = useState(DEFAULT_NOTIFY_TIME);
+  const [showPresetSheet, setShowPresetSheet] = useState(false);
 
-  // Load current reminder state from DB
+  // Load current state from DB
   useEffect(() => {
     let cancelled = false;
 
     async function load() {
-      const reminders = await db.reminders
-        .where('[itemId+fieldKey]')
-        .equals([itemId, fieldKey])
-        .toArray();
+      const [reminders, timePref] = await Promise.all([
+        db.reminders
+          .where('[itemId+fieldKey]')
+          .equals([itemId, fieldKey])
+          .toArray(),
+        import('@/lib/reminder-preferences').then((m) => m.getNotifyTimeLocal()),
+      ]);
 
       if (!cancelled) {
-        const intervals = new Set(
-          reminders.filter((r: Reminder) => r.isEnabled).map((r: Reminder) => r.daysBefore)
-        );
-        setActiveIntervals(intervals);
+        const sentinel = hasSentinel(reminders);
+        const enabled = reminders
+          .filter((r: Reminder) => r.isEnabled && r.daysBefore >= 0)
+          .map((r: Reminder) => r.daysBefore)
+          .sort((a, b) => b - a);
+        setActiveIntervals(enabled);
+        setIsDisabled(sentinel);
+        setNotifyTime(timePref);
         setLoading(false);
       }
     }
@@ -55,132 +85,134 @@ export function ReminderChips({
     return () => { cancelled = true; };
   }, [itemId, fieldKey]);
 
-  const handleToggle = useCallback(async (daysBefore: number) => {
-    // Optimistic update
-    setActiveIntervals((prev) => {
-      const next = new Set(prev);
-      if (next.has(daysBefore)) {
-        next.delete(daysBefore);
+  // Handle preset selection from the sheet
+  const handlePresetSelect = useCallback(
+    async (offsets: number[]) => {
+      setShowPresetSheet(false);
+
+      if (offsets.length === 0) {
+        // "None" — plant sentinel
+        setActiveIntervals([]);
+        setIsDisabled(true);
+        await disableFieldReminders(itemId, fieldKey);
       } else {
-        next.add(daysBefore);
+        // Apply the selected offsets
+        setActiveIntervals([...offsets].sort((a, b) => b - a));
+        setIsDisabled(false);
+        await setFieldReminders(itemId, fieldKey, offsets, deadlineDate);
       }
-      return next;
-    });
+    },
+    [itemId, fieldKey, deadlineDate, disableFieldReminders, setFieldReminders]
+  );
 
-    await toggleReminder(itemId, fieldKey, daysBefore, deadlineDate);
-  }, [itemId, fieldKey, deadlineDate, toggleReminder]);
+  // Re-enable from "None" state
+  const handleReEnable = useCallback(() => {
+    setShowPresetSheet(true);
+  }, []);
 
-  const handleAddCustom = useCallback(async () => {
-    const days = parseInt(customDays, 10);
-    if (isNaN(days) || days < 1 || days > 365) return;
+  // Get next notification date for display
+  const getNextDate = useCallback(
+    (daysBefore: number): string | null => {
+      if (!deadlineDate) return null;
+      const triggerDate = calculateTriggerDate(deadlineDate, daysBefore, notifyTime);
+      if (!triggerDate) return null;
+      return formatDate(triggerDate);
+    },
+    [deadlineDate, notifyTime]
+  );
 
-    setActiveIntervals((prev) => new Set(prev).add(days));
-    setCustomDays('');
-    setShowCustomInput(false);
-
-    await addCustomReminder(itemId, fieldKey, days, deadlineDate);
-  }, [customDays, itemId, fieldKey, deadlineDate, addCustomReminder]);
-
-  const getNextNotificationDate = useCallback((daysBefore: number): string | null => {
-    if (!deadlineDate) return null;
-    const triggerDate = calculateTriggerDate(deadlineDate, daysBefore);
-    if (!triggerDate) return null;
-    return formatDate(triggerDate);
-  }, [deadlineDate]);
-
+  // Loading skeleton
   if (loading) {
     return (
       <div className="animate-pulse space-y-2">
         <div className="h-4 w-24 rounded bg-muted" />
-        <div className="flex gap-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-8 w-16 rounded-full bg-muted" />
-          ))}
-        </div>
+        <div className="h-10 w-48 rounded-xl bg-muted" />
       </div>
     );
   }
 
-  // Combine presets + any custom intervals not in presets
-  const allIntervals = [...new Set([...PRESET_INTERVALS, ...Array.from(activeIntervals)])]
-    .sort((a, b) => b - a);
+  // Current label
+  const presetLabel = isDisabled
+    ? 'None'
+    : activeIntervals.length > 0
+      ? formatOffsetsSummary(activeIntervals)
+      : 'None';
 
   return (
     <div className="space-y-3">
+      {/* Header */}
       <div className="flex items-center gap-2">
-        <Bell className="h-4 w-4 text-muted-foreground" />
+        {isDisabled ? (
+          <BellOff className="h-4 w-4 text-muted-foreground" />
+        ) : (
+          <Bell className="h-4 w-4 text-muted-foreground" />
+        )}
         <span className="text-sm font-medium">{fieldLabel} reminders</span>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {allIntervals.map((days) => {
-          const isActive = activeIntervals.has(days);
-          const isDefault = defaultIntervals.includes(days);
-          const nextDate = getNextNotificationDate(days);
-
-          return (
-            <button
-              key={days}
-              onClick={() => handleToggle(days)}
-              className={`inline-flex min-h-[44px] items-center gap-1.5 rounded-full px-4 py-2 text-sm transition-colors ${
-                isActive
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
-              }`}
-              aria-pressed={isActive}
-              aria-label={`Remind ${days} day${days === 1 ? '' : 's'} before${isDefault ? ' (default)' : ''}`}
-              title={nextDate ? `Next: ${nextDate}` : undefined}
-            >
-              <span>{days}d</span>
-              {isActive && nextDate && (
-                <span className="text-xs opacity-75">· {nextDate}</span>
-              )}
-            </button>
-          );
-        })}
-
-        {/* Add custom interval button */}
-        {!showCustomInput ? (
+      {/* Disabled state — "Reminders off for this field" */}
+      {isDisabled ? (
+        <div className="flex items-center gap-3">
+          <p className="text-[13px] text-muted-foreground">
+            Reminders off for this field
+          </p>
           <button
-            onClick={() => setShowCustomInput(true)}
-            className="inline-flex min-h-[44px] items-center gap-1 rounded-full border border-dashed border-muted-foreground/30 px-4 py-2 text-sm text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
-            aria-label="Add custom reminder interval"
+            type="button"
+            onClick={handleReEnable}
+            className="min-h-[36px] rounded-lg bg-primary/10 px-3 py-1.5 text-[13px] font-medium text-primary transition-colors hover:bg-primary/20"
           >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Custom</span>
+            Re-enable
           </button>
-        ) : (
-          <div className="inline-flex min-h-[44px] items-center gap-2 rounded-full border border-primary/30 bg-background px-3 py-1.5">
-            <input
-              type="number"
-              min={1}
-              max={365}
-              value={customDays}
-              onChange={(e) => setCustomDays(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAddCustom();
-                if (e.key === 'Escape') setShowCustomInput(false);
-              }}
-              placeholder="Days"
-              className="w-16 bg-transparent text-sm outline-none"
-              autoFocus
-              aria-label="Custom reminder days before deadline"
-            />
-            <span className="text-xs text-muted-foreground">days</span>
-            <button
-              onClick={handleAddCustom}
-              className="rounded-md bg-primary px-2 py-1 text-xs font-medium text-primary-foreground"
-            >
-              Add
-            </button>
-          </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <>
+          {/* Preset dropdown button */}
+          <button
+            type="button"
+            onClick={() => setShowPresetSheet(true)}
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 text-[15px] transition-colors hover:bg-muted/30"
+          >
+            <span className="font-medium">{presetLabel}</span>
+            <ChevronDown size={16} className="text-muted-foreground" />
+          </button>
 
-      {!deadlineDate && (
-        <p className="text-xs text-muted-foreground">
-          Set a date for this field to activate reminders.
-        </p>
+          {/* Active interval pills (read-only view of what's scheduled) */}
+          {activeIntervals.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {activeIntervals.map((days) => {
+                const nextDate = getNextDate(days);
+                return (
+                  <div
+                    key={days}
+                    className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-[13px] text-primary"
+                  >
+                    <span className="font-medium">{days}d</span>
+                    {nextDate && (
+                      <span className="text-primary/70">· {nextDate}</span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* No date warning */}
+          {!deadlineDate && (
+            <p className="text-xs text-muted-foreground">
+              Set a date for this field to activate reminders.
+            </p>
+          )}
+        </>
+      )}
+
+      {/* Preset selection sheet */}
+      {showPresetSheet && (
+        <ReminderPresetSheet
+          currentOffsets={activeIntervals}
+          onSelect={handlePresetSelect}
+          onClose={() => setShowPresetSheet(false)}
+          title={`${fieldLabel} reminders`}
+        />
       )}
     </div>
   );

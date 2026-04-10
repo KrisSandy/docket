@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Pencil, Archive, Clock, History, ChevronDown, ChevronUp, BellOff } from 'lucide-react';
+import { Pencil, Archive, History, ChevronDown, ChevronUp, BellOff, Bell } from 'lucide-react';
 import { useItems } from '@/hooks/use-items';
 import { useItemFields } from '@/hooks/use-item-fields';
 import { useReminders, type ReminderSummary } from '@/hooks/use-reminders';
 import { useHistory } from '@/hooks/use-history';
 import { BackButton } from '@/components/layout/back-button';
 import { FieldRenderer } from '@/components/items/field-renderer';
+import { DateReminderButton } from '@/components/items/date-reminder-button';
 import { StatusBadge } from '@/components/items/status-badge';
 import { ItemEditMode } from '@/components/items/item-edit-mode';
 import { HistoryTimeline } from '@/components/items/history-timeline';
@@ -17,6 +18,7 @@ import type { Item, ItemField, HistoryEntry } from '@/db/schema';
 import type { DisplayStatus } from '@/types';
 import { daysUntilDate, getEarliestDeadline, formatDate } from '@/lib/dates';
 import { calculateStatus } from '@/lib/status';
+import { formatOffsetsSummary } from '@/constants/reminder-presets';
 
 export default function ItemDetailPage() {
   const searchParams = useSearchParams();
@@ -222,7 +224,7 @@ export default function ItemDetailPage() {
         </button>
       </div>
 
-      {/* Fields */}
+      {/* Fields — date fields get an inline reminder button */}
       <section className="mt-8">
         <h2 className="text-[18px] font-semibold mb-2">Details</h2>
         <div className="rounded-xl border border-border bg-card px-4">
@@ -232,6 +234,18 @@ export default function ItemDetailPage() {
               label={field.label}
               value={field.fieldValue}
               fieldType={field.fieldType}
+              trailing={
+                field.fieldType === 'date' && item ? (
+                  <DateReminderButton
+                    itemId={item.id}
+                    fieldKey={field.fieldKey}
+                    fieldLabel={field.label}
+                    deadlineDate={
+                      field.fieldValue ? new Date(field.fieldValue) : null
+                    }
+                  />
+                ) : undefined
+              }
             />
           ))}
         </div>
@@ -241,21 +255,38 @@ export default function ItemDetailPage() {
       {reminderSummaries.length > 0 && (
         <section className="mt-6">
           <h2 className="text-[18px] font-semibold mb-2 flex items-center gap-2">
-            <Clock size={18} />
+            <Bell size={18} />
             Reminders
           </h2>
-          <div className="rounded-xl border border-border bg-card px-4 py-3">
+          <div className="rounded-xl border border-border bg-card px-4 divide-y divide-border/50">
             {reminderSummaries.map((summary) => {
               const fieldLabel = fields.find(
                 (f) => f.fieldKey === summary.fieldKey
               )?.label ?? summary.fieldKey;
+
               return (
-                <p
+                <div
                   key={summary.fieldKey}
-                  className="text-[13px] text-muted-foreground py-1"
+                  className="flex items-center justify-between py-3"
                 >
-                  {fieldLabel}: {summary.intervals.join(', ')} days before
-                </p>
+                  <span className="text-[13px] text-muted-foreground shrink-0 pr-4">
+                    {fieldLabel}
+                  </span>
+                  {summary.isDisabled ? (
+                    <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground/60">
+                      <BellOff size={12} />
+                      Off
+                    </span>
+                  ) : summary.intervals.length > 0 ? (
+                    <span className="text-[13px] text-foreground text-right">
+                      {formatOffsetsSummary(summary.intervals)}
+                    </span>
+                  ) : (
+                    <span className="text-[13px] text-muted-foreground/60">
+                      None set
+                    </span>
+                  )}
+                </div>
               );
             })}
           </div>
