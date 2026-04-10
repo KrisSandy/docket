@@ -111,6 +111,11 @@ export default function ItemDetailPage() {
     }
   }, [id]);
 
+  const refreshReminders = useCallback(async () => {
+    const summaries = await getReminderSummary(id);
+    setReminderSummaries(summaries);
+  }, [id, getReminderSummary]);
+
   const handleArchive = async () => {
     if (!item) return;
     await updateItem(item.id, { status: 'archived' });
@@ -243,6 +248,7 @@ export default function ItemDetailPage() {
                     deadlineDate={
                       field.fieldValue ? new Date(field.fieldValue) : null
                     }
+                    onChange={refreshReminders}
                   />
                 ) : undefined
               }

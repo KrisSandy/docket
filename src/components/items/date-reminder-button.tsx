@@ -19,6 +19,8 @@ interface DateReminderButtonProps {
   fieldKey: string;
   fieldLabel: string;
   deadlineDate: Date | null;
+  /** Called after reminders are changed so the parent can refresh. */
+  onChange?: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -52,6 +54,7 @@ export function DateReminderButton({
   fieldKey,
   fieldLabel,
   deadlineDate,
+  onChange,
 }: DateReminderButtonProps) {
   const { disableFieldReminders, setFieldReminders } = useReminders();
   const [activeIntervals, setActiveIntervals] = useState<number[]>([]);
@@ -98,8 +101,10 @@ export function DateReminderButton({
         setIsDisabled(false);
         await setFieldReminders(itemId, fieldKey, offsets, deadlineDate);
       }
+
+      onChange?.();
     },
-    [itemId, fieldKey, deadlineDate, disableFieldReminders, setFieldReminders]
+    [itemId, fieldKey, deadlineDate, disableFieldReminders, setFieldReminders, onChange]
   );
 
   if (loading) {
