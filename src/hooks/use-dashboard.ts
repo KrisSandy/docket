@@ -5,6 +5,7 @@ import type { DashboardItem, DisplayStatus } from '@/types';
 import { daysUntilDate, getEarliestDeadline, formatCountdown } from '@/lib/dates';
 import { calculateStatus, getStatusPriority } from '@/lib/status';
 import { getKeyFieldKeys, getSubtitleFieldKeys, getTemplateFields, CARD_SHORT_LABELS } from '@/lib/templates';
+import { loadPreferences, resolveOffsets } from '@/lib/reminder-preferences';
 import type { ServiceType, KeyField } from '@/types';
 
 export interface DashboardCategory {
@@ -24,6 +25,8 @@ export interface DashboardData {
     daysUntil: number;
     status: DisplayStatus;
     dateLabel: string;
+    /** True when the item has billing_day + billing_frequency + billing_date all set — supports auto-advance on mark paid. */
+    isBillingItem: boolean;
   }[];
 }
 
@@ -168,17 +171,58 @@ export function useDashboard() {
     }
     const uniqueCategories = Array.from(categorySet.values());
 
-    // Build upcoming deadlines (next 3 with deadlines)
-    const upcomingDeadlines = dashboardItems
-      .filter((i) => i.daysUntilDeadline !== null)
-      .slice(0, 3)
-      .map((i) => ({
+    // Load reminder preferences once for window calculation
+    const prefs = await loadPreferences();
+
+    // Build upcoming deadlines — only include items within their reminder window.
+    // e.g. billing_date has reminderOffsets: [3] → appears only when ≤ 3 days away.
+    // Insurance/vehicle fields use the global default (e.g. [30, 7, 1]) → appear when ≤ 30 days away.
+    const upcomingDeadlines: DashboardData['upcomingDeadlines'] = [];
+
+    for (const i of dashboardItems) {
+      if (i.daysUntilDeadline === null) continue;
+
+      const fields = fieldsByItem.get(i.id) ?? [];
+      const fieldMap = new Map(fields.map((f) => [f.fieldKey, f]));
+
+      // Find the date field with the earliest deadline
+      let earliestFieldKey: string | null = null;
+      let earliestMs = Infinity;
+      for (const f of fields) {
+        if (f.fieldType !== 'date' || !f.fieldValue) continue;
+        const d = new Date(f.fieldValue);
+        if (isNaN(d.getTime())) continue;
+        if (d.getTime() < earliestMs) {
+          earliestMs = d.getTime();
+          earliestFieldKey = f.fieldKey;
+        }
+      }
+
+      // Resolve reminder window for that field
+      const templateFields = getTemplateFields(i.categoryName, i.serviceType);
+      const templateFieldMap = new Map(templateFields.map((tf) => [tf.fieldKey, tf]));
+      const targetTemplateFld = earliestFieldKey ? templateFieldMap.get(earliestFieldKey) : undefined;
+      const offsets = targetTemplateFld?.reminderOffsets ?? resolveOffsets(prefs, i.categoryName);
+      const maxReminderOffset = offsets.length > 0 ? Math.max(...offsets) : 0;
+
+      // Skip items not yet within their reminder window
+      if (i.daysUntilDeadline > maxReminderOffset) continue;
+
+      const isBillingItem = !!(
+        fieldMap.get('billing_day')?.fieldValue &&
+        fieldMap.get('billing_frequency')?.fieldValue &&
+        fieldMap.get('billing_date')?.fieldValue
+      );
+
+      upcomingDeadlines.push({
         id: i.id,
         title: i.title,
-        daysUntil: i.daysUntilDeadline!,
+        daysUntil: i.daysUntilDeadline,
         status: i.displayStatus,
         dateLabel: i.keyDateLabel!,
-      }));
+        isBillingItem,
+      });
+    }
 
     return {
       items: dashboardItems,

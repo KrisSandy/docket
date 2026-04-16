@@ -14,6 +14,8 @@ interface FieldEditorProps {
   options?: readonly string[];
   min?: number;
   max?: number;
+  /** When true, only future dates (>= today) are accepted. Enforced via HTML min attribute. */
+  futureOnly?: boolean;
 }
 
 export function FieldEditor({
@@ -28,7 +30,9 @@ export function FieldEditor({
   options,
   min,
   max,
+  futureOnly = false,
 }: FieldEditorProps) {
+  const todayISO = new Date().toISOString().split('T')[0];
   const inputId = `field-${label.toLowerCase().replace(/\s+/g, '-')}`;
 
   const commonClasses =
@@ -87,6 +91,7 @@ export function FieldEditor({
             onChange={(e) => onChange(e.target.value)}
             className={commonClasses}
             required={isRequired}
+            min={futureOnly ? todayISO : undefined}
           />
         );
 

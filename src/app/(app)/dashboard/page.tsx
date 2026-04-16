@@ -21,8 +21,9 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { CategoryIcon } from '@/components/ui/category-icon';
 import { LogoWordmark } from '@/components/ui/logo';
 import { db } from '@/db/database';
-import type { DashboardItem } from '@/types';
+import type { DashboardItem, BillingFrequency } from '@/types';
 import type { HistoryEntry } from '@/db/schema';
+import { advanceBillingDate } from '@/lib/dates';
 
 type ViewMode = 'glance' | 'detail';
 
@@ -57,6 +58,7 @@ export default function DashboardPage() {
   const [renewDialogOpen, setRenewDialogOpen] = useState(false);
   const [dismissDialogOpen, setDismissDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<DashboardItem | null>(null);
+  const [markingPaidId, setMarkingPaidId] = useState<string | null>(null);
   const [, setBannerDismissed] = useState(false);
 
   const { dismissItem, clearDismissal } = useItems();
@@ -217,6 +219,56 @@ export default function DashboardPage() {
     }
   };
 
+  /**
+   * Mark a billing item as paid:
+   * 1. Read billing_day, billing_frequency, billing_date from the item's fields.
+   * 2. Advance billing_date to the next cycle using advanceBillingDate().
+   * 3. Persist the new date and reschedule reminders.
+   */
+  const handleMarkBillingPaid = async (itemId: string) => {
+    setMarkingPaidId(itemId);
+    try {
+      const fields = await getFieldsForItem(itemId);
+      const fieldMap = new Map(fields.map((f) => [f.fieldKey, f]));
+
+      const billingDayField = fieldMap.get('billing_day');
+      const billingFreqField = fieldMap.get('billing_frequency');
+      const billingDateField = fieldMap.get('billing_date');
+
+      if (!billingDayField?.fieldValue || !billingFreqField?.fieldValue || !billingDateField) {
+        return;
+      }
+
+      const day = parseInt(billingDayField.fieldValue, 10);
+      const frequency = billingFreqField.fieldValue as BillingFrequency;
+      const currentDate = billingDateField.fieldValue
+        ? new Date(billingDateField.fieldValue)
+        : new Date();
+
+      const nextDate = advanceBillingDate(currentDate, day, frequency);
+      const nextDateISO = nextDate.toISOString().split('T')[0];
+
+      await updateField(billingDateField.id, nextDateISO, 'renewal');
+
+      // Rebuild fieldDateMap with the updated billing_date for reminder rescheduling
+      const fieldDateMap = new Map<string, Date>();
+      for (const f of fields) {
+        if (f.fieldType === 'date') {
+          const dateVal = f.id === billingDateField.id ? nextDateISO : f.fieldValue;
+          if (dateVal) {
+            const d = new Date(dateVal);
+            if (!isNaN(d.getTime())) fieldDateMap.set(f.fieldKey, d);
+          }
+        }
+      }
+      await rescheduleRemindersForItem(itemId, fieldDateMap);
+      await clearDismissal(itemId);
+      await loadData();
+    } finally {
+      setMarkingPaidId(null);
+    }
+  };
+
   if (isLoading && !data) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -265,6 +317,8 @@ export default function DashboardPage() {
           <UpcomingDeadlines
             items={data.upcomingDeadlines}
             onItemClick={handleItemClick}
+            onMarkPaid={handleMarkBillingPaid}
+            markingPaidId={markingPaidId}
           />
         </section>
       )}

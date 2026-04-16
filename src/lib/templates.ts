@@ -1,5 +1,5 @@
 import type { CategoryTemplate, TemplateField, ServiceType } from '@/types';
-import { BILLING_FREQUENCY_OPTIONS } from '@/types';
+import { BILLING_FREQUENCY_OPTIONS, PAYMENT_METHOD_OPTIONS } from '@/types';
 
 // ─── Vehicle Template ──────────────────────────────────────────────────────────
 const vehicleFields: TemplateField[] = [
@@ -11,9 +11,9 @@ const vehicleFields: TemplateField[] = [
   { fieldKey: 'policy_number', label: 'Policy Number', fieldType: 'text', sortOrder: 5 },
   { fieldKey: 'annual_premium', label: 'Annual Premium', fieldType: 'currency', sortOrder: 6 },
   { fieldKey: 'insurance_excess', label: 'Insurance Excess Amount', fieldType: 'currency', sortOrder: 7 },
-  { fieldKey: 'motor_tax_due', label: 'Motor Tax Due Date', fieldType: 'date', sortOrder: 8 },
-  { fieldKey: 'nct_date', label: 'NCT Date', fieldType: 'date', sortOrder: 9, helperText: 'National Car Test expiry date' },
-  { fieldKey: 'insurance_renewal', label: 'Insurance Renewal Date', fieldType: 'date', sortOrder: 10 },
+  { fieldKey: 'motor_tax_due', label: 'Motor Tax Due Date', fieldType: 'date', sortOrder: 8, futureOnly: true },
+  { fieldKey: 'nct_date', label: 'NCT Date', fieldType: 'date', sortOrder: 9, helperText: 'National Car Test expiry date', futureOnly: true },
+  { fieldKey: 'insurance_renewal', label: 'Insurance Renewal Date', fieldType: 'date', sortOrder: 10, futureOnly: true },
   { fieldKey: 'insurer_contact', label: 'Insurer Contact', fieldType: 'text', sortOrder: 11 },
 ];
 
@@ -21,13 +21,13 @@ const vehicleFields: TemplateField[] = [
 const utilitiesSharedFields: TemplateField[] = [
   { fieldKey: 'provider', label: 'Provider', fieldType: 'text', sortOrder: 0 },
   { fieldKey: 'account_number', label: 'Account Number', fieldType: 'text', sortOrder: 1 },
-  { fieldKey: 'payment_method', label: 'Payment Method', fieldType: 'text', sortOrder: 2, placeholder: 'e.g., Direct Debit' },
+  { fieldKey: 'payment_method', label: 'Payment Method', fieldType: 'text', sortOrder: 2, options: PAYMENT_METHOD_OPTIONS },
   { fieldKey: 'monthly_cost', label: 'Monthly Cost', fieldType: 'currency', sortOrder: 3 },
   { fieldKey: 'estimated_annual_cost', label: 'Estimated Annual Cost', fieldType: 'currency', sortOrder: 4 },
   { fieldKey: 'billing_frequency', label: 'Billing Frequency', fieldType: 'text', sortOrder: 5, options: BILLING_FREQUENCY_OPTIONS },
   { fieldKey: 'billing_day', label: 'Billing Day', fieldType: 'number', sortOrder: 6, min: 1, max: 31, helperText: 'Day of month you are billed', placeholder: 'e.g., 15' },
-  { fieldKey: 'billing_date', label: 'Next Billing Date', fieldType: 'date', sortOrder: 6.5, computed: true, dependsOn: ['billing_day', 'billing_frequency'], helperText: 'Auto-calculated from billing day and frequency' },
-  { fieldKey: 'contract_end', label: 'Contract End Date', fieldType: 'date', sortOrder: 7 },
+  { fieldKey: 'billing_date', label: 'Next Billing Date', fieldType: 'date', sortOrder: 6.5, computed: true, dependsOn: ['billing_day', 'billing_frequency'], helperText: 'Auto-calculated from billing day and frequency', reminderOffsets: [3] },
+  { fieldKey: 'contract_end', label: 'Contract End Date', fieldType: 'date', sortOrder: 7, futureOnly: true },
 ];
 
 // ─── Utilities: Electricity-specific ─────────────────────────────────────────
@@ -85,9 +85,9 @@ const housingFields: TemplateField[] = [
   { fieldKey: 'interest_rate', label: 'Interest Rate', fieldType: 'percentage', sortOrder: 3 },
   { fieldKey: 'mortgage_rent_amount', label: 'Mortgage / Rent Amount', fieldType: 'currency', sortOrder: 4, helperText: 'Monthly mortgage repayment or rent' },
   { fieldKey: 'lpt_amount', label: 'Property Tax (LPT) Amount', fieldType: 'currency', sortOrder: 5 },
-  { fieldKey: 'lpt_due_date', label: 'LPT Due Date', fieldType: 'date', sortOrder: 6 },
-  { fieldKey: 'fixed_term_end', label: 'Fixed Term End Date', fieldType: 'date', sortOrder: 7, helperText: 'Mortgage fixed rate end or lease end date' },
-  { fieldKey: 'tenancy_lease_end', label: 'Tenancy / Lease End Date', fieldType: 'date', sortOrder: 8, helperText: 'For renters — when the lease expires' },
+  { fieldKey: 'lpt_due_date', label: 'LPT Due Date', fieldType: 'date', sortOrder: 6, futureOnly: true },
+  { fieldKey: 'fixed_term_end', label: 'Fixed Term End Date', fieldType: 'date', sortOrder: 7, helperText: 'Mortgage fixed rate end or lease end date', futureOnly: true },
+  { fieldKey: 'tenancy_lease_end', label: 'Tenancy / Lease End Date', fieldType: 'date', sortOrder: 8, helperText: 'For renters — when the lease expires', futureOnly: true },
 ];
 
 // ─── Insurance Template ──────────────────────────────────────────────────────
@@ -102,7 +102,7 @@ const insuranceFields: TemplateField[] = [
   { fieldKey: 'named_insured', label: 'Named Insured', fieldType: 'text', sortOrder: 7 },
   { fieldKey: 'broker_name', label: 'Broker Name', fieldType: 'text', sortOrder: 8 },
   { fieldKey: 'broker_contact', label: 'Broker Contact', fieldType: 'text', sortOrder: 9 },
-  { fieldKey: 'renewal_date', label: 'Renewal Date', fieldType: 'date', sortOrder: 10 },
+  { fieldKey: 'renewal_date', label: 'Renewal Date', fieldType: 'date', sortOrder: 10, futureOnly: true },
 ];
 
 // ─── Category Templates ─────────────────────────────────────────────────────

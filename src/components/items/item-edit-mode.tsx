@@ -55,6 +55,15 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
   const computedFieldKeys = new Set(
     templateFields.filter((tf) => tf.computed).map((tf) => tf.fieldKey)
   );
+  // Track futureOnly date fields and helper text
+  const futureOnlyFieldKeys = new Set(
+    templateFields.filter((tf) => tf.futureOnly).map((tf) => tf.fieldKey)
+  );
+  const fieldHelperTextMap = new Map(
+    templateFields
+      .filter((tf) => tf.helperText)
+      .map((tf) => [tf.fieldKey, tf.helperText!])
+  );
 
   const [fieldStates, setFieldStates] = useState<FieldState[]>(() =>
     fields.map((f) => ({
@@ -88,13 +97,39 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
-    for (const field of fieldStates) {
-      if (field.isTemplateField && field.value.trim() === '' && field.originalValue !== '') {
-        // Only require template fields that previously had values — allow initially empty
-        // Actually per spec: "template fields cannot be empty" on save
-        // But we allow initially empty fields to be saved as empty (they were never filled)
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Billing day ↔ billing frequency cross-field validation
+    const billingFreq = fieldStates.find((f) => f.fieldKey === 'billing_frequency');
+    const billingDay = fieldStates.find((f) => f.fieldKey === 'billing_day');
+
+    if (billingFreq && billingDay) {
+      const freqSet = billingFreq.value.trim() !== '';
+      const dayRaw = billingDay.value.trim();
+      const dayNum = parseInt(dayRaw, 10);
+
+      if (freqSet && dayRaw === '') {
+        newErrors[billingDay.id] = 'Required when billing frequency is set';
+      } else if (!freqSet && dayRaw !== '') {
+        newErrors[billingFreq.id] = 'Required when billing day is set';
+      } else if (dayRaw !== '') {
+        if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 31) {
+          newErrors[billingDay.id] = 'Must be a day between 1 and 31';
+        }
       }
     }
+
+    // Future-only date validation
+    for (const field of fieldStates) {
+      if (futureOnlyFieldKeys.has(field.fieldKey) && field.value.trim() !== '') {
+        const date = new Date(field.value);
+        if (!isNaN(date.getTime()) && date < today) {
+          newErrors[field.id] = 'Must be a future date';
+        }
+      }
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -223,9 +258,11 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
               isRequired={field.isTemplateField}
               onChange={(value) => handleFieldChange(field.id, value)}
               error={errors[field.id]}
+              helperText={fieldHelperTextMap.get(field.fieldKey)}
               options={fieldOptionsMap.get(field.fieldKey)}
               min={fieldMinMap.get(field.fieldKey)}
               max={fieldMaxMap.get(field.fieldKey)}
+              futureOnly={futureOnlyFieldKeys.has(field.fieldKey)}
             />
           ))}
       </div>

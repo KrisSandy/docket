@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { db } from '@/db/database';
 import type { Reminder } from '@/db/schema';
-import { getDateFieldKeys } from '@/lib/templates';
+import { getDateFieldKeys, getTemplateFields } from '@/lib/templates';
 import { loadPreferences, resolveOffsets } from '@/lib/reminder-preferences';
 import {
   scheduleReminder as scheduleNotification,
@@ -58,20 +58,26 @@ export function useReminders() {
 
   const createDefaultReminders = useCallback(async (
     itemId: string,
-    categoryName: string
+    categoryName: string,
+    serviceType?: string | null
   ): Promise<void> => {
-    const dateFieldKeys = getDateFieldKeys(categoryName);
+    // Use full template fields so we can respect per-field reminderOffsets
+    const templateFields = getTemplateFields(categoryName, serviceType as import('@/types').ServiceType ?? null);
+    const dateFields = templateFields.filter((f) => f.fieldType === 'date');
+
     const prefs = await loadPreferences();
-    const intervals = resolveOffsets(prefs, categoryName);
+    const globalIntervals = resolveOffsets(prefs, categoryName);
     const now = new Date();
 
     const reminders: Reminder[] = [];
-    for (const fieldKey of dateFieldKeys) {
+    for (const field of dateFields) {
+      // Use field-specific offsets when defined (e.g. billing_date → [3 days])
+      const intervals = field.reminderOffsets ?? globalIntervals;
       for (const daysBefore of intervals) {
         reminders.push({
           id: uuidv4(),
           itemId,
-          fieldKey,
+          fieldKey: field.fieldKey,
           daysBefore,
           isEnabled: true,
           lastNotifiedAt: null,

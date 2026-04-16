@@ -24,6 +24,7 @@ interface FormFieldState {
   min?: number;
   max?: number;
   computed?: boolean;
+  futureOnly?: boolean;
 }
 
 export default function AddItemFormPage() {
@@ -38,6 +39,7 @@ export default function AddItemFormPage() {
 
   const [title, setTitle] = useState('');
   const [fieldStates, setFieldStates] = useState<FormFieldState[]>([]);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [titleError, setTitleError] = useState('');
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
@@ -61,6 +63,7 @@ export default function AddItemFormPage() {
         min: tf.min,
         max: tf.max,
         computed: tf.computed,
+        futureOnly: tf.futureOnly,
       }))
     );
   }, [categoryName, selectedServiceType]);
@@ -69,6 +72,50 @@ export default function AddItemFormPage() {
     setFieldStates((prev) =>
       prev.map((f) => (f.fieldKey === fieldKey ? { ...f, value } : f))
     );
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      delete next[fieldKey];
+      return next;
+    });
+  };
+
+  const validateFields = (): boolean => {
+    const newErrors: Record<string, string> = {};
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Billing day ↔ billing frequency cross-field validation
+    const billingFreq = fieldStates.find((f) => f.fieldKey === 'billing_frequency');
+    const billingDay = fieldStates.find((f) => f.fieldKey === 'billing_day');
+
+    if (billingFreq && billingDay) {
+      const freqSet = billingFreq.value.trim() !== '';
+      const dayRaw = billingDay.value.trim();
+      const dayNum = parseInt(dayRaw, 10);
+
+      if (freqSet && dayRaw === '') {
+        newErrors['billing_day'] = 'Required when billing frequency is set';
+      } else if (!freqSet && dayRaw !== '') {
+        newErrors['billing_frequency'] = 'Required when billing day is set';
+      } else if (dayRaw !== '') {
+        if (!Number.isInteger(dayNum) || dayNum < 1 || dayNum > 31) {
+          newErrors['billing_day'] = 'Must be a day between 1 and 31';
+        }
+      }
+    }
+
+    // Future-only date validation
+    for (const field of fieldStates) {
+      if (field.futureOnly && field.value.trim() !== '') {
+        const date = new Date(field.value);
+        if (!isNaN(date.getTime()) && date < today) {
+          newErrors[field.fieldKey] = 'Must be a future date';
+        }
+      }
+    }
+
+    setFieldErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleServiceTypeSelect = (type: ServiceType) => {
@@ -116,6 +163,8 @@ export default function AddItemFormPage() {
     if (categoryHasServiceTypes && !selectedServiceType) {
       return;
     }
+
+    if (!validateFields()) return;
 
     setTitleError('');
     setIsSaving(true);
@@ -217,11 +266,13 @@ export default function AddItemFormPage() {
                   value={field.value}
                   fieldType={field.fieldType}
                   onChange={(value) => handleFieldChange(field.fieldKey, value)}
+                  error={fieldErrors[field.fieldKey]}
                   helperText={field.helperText}
                   placeholder={field.placeholder}
                   options={field.options}
                   min={field.min}
                   max={field.max}
+                  futureOnly={field.futureOnly}
                 />
               ))}
           </div>

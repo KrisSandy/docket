@@ -35,6 +35,16 @@ export interface CategoryTemplate {
   serviceTypes?: ServiceType[];
 }
 
+export const PAYMENT_METHOD_OPTIONS = [
+  'Direct Debit',
+  'Credit Card',
+  'Debit Card',
+  'Bank Transfer',
+  'Cash',
+] as const;
+
+export type PaymentMethod = (typeof PAYMENT_METHOD_OPTIONS)[number];
+
 export const BILLING_FREQUENCY_OPTIONS = [
   'Monthly',
   'Bi-monthly',
@@ -58,6 +68,11 @@ export interface TemplateField {
   computed?: boolean;
   /** Field key(s) this field depends on — used to trigger recomputation. */
   dependsOn?: string[];
+  /** When true, only future dates (>= today) are accepted. Applied to deadline/due date fields. */
+  futureOnly?: boolean;
+  /** Override the global default reminder offsets (days before) for this specific field.
+   *  When set, these intervals are used instead of the user's global preferences. */
+  reminderOffsets?: number[];
 }
 
 /** A field snippet displayed on dashboard cards */
