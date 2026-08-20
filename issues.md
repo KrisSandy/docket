@@ -24,3 +24,5 @@ Issue 3 - No document upload, just add your data manually as one time setup
 for rest go with the recommendations.
 
 Are there any other clarifications required?
+
+Backlog - Cloud backup (Android, opportunistic Drive-folder backup) stores the persisted backup passphrase in the Dexie settings table for v1 (protected only by normal OS app-sandboxing). Upgrade to real Android Keystore-backed secure storage in a later version — needs a native Capacitor plugin, none exists in this codebase today.
