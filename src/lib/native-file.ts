@@ -73,19 +73,3 @@ export function downloadInBrowser(
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
-
-/**
- * Pick a file from the device filesystem.
- * On native: uses Capacitor Filesystem to read a file.
- * On web: returns null (HTML file input should be used instead).
- */
-export async function pickFileNative(
-  _extensions: string[] // eslint-disable-line @typescript-eslint/no-unused-vars
-): Promise<{ content: string; name: string } | null> {
-  if (!isNative()) return null;
-
-  // On native, we rely on the HTML file input for now.
-  // Capacitor Filesystem doesn't have a built-in file picker.
-  // The native file picker is handled by the <input type="file"> element.
-  return null;
-}
