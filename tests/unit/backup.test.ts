@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
   validateBackupStructure,
   migrateBackupData,
   backupToCSV,
+  getBackupStalenessTone,
   CURRENT_SCHEMA_VERSION,
   type BackupData,
 } from '@/lib/backup';
@@ -210,6 +211,52 @@ describe('backup utilities', () => {
 
       const csv = backupToCSV(data);
       expect(csv).toContain('Vehicle');
+    });
+  });
+
+  describe('getBackupStalenessTone', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('returns ok when a backup has never been taken', () => {
+      expect(getBackupStalenessTone(null)).toBe('ok');
+    });
+
+    it('returns ok for a recent backup', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-30'));
+      expect(getBackupStalenessTone('2026-03-25T00:00:00.000Z')).toBe('ok');
+    });
+
+    it('returns ok just under the 30-day warning threshold', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-30'));
+      expect(getBackupStalenessTone('2026-03-01T00:00:00.000Z')).toBe('ok'); // 29 days
+    });
+
+    it('returns warning at exactly 30 days', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-30'));
+      expect(getBackupStalenessTone('2026-02-28T00:00:00.000Z')).toBe('warning'); // 30 days
+    });
+
+    it('returns warning just under the 90-day urgent threshold', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-30'));
+      expect(getBackupStalenessTone('2025-12-31T00:00:00.000Z')).toBe('warning'); // 89 days
+    });
+
+    it('returns urgent at exactly 90 days', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-30'));
+      expect(getBackupStalenessTone('2025-12-30T00:00:00.000Z')).toBe('urgent'); // 90 days
+    });
+
+    it('returns urgent for a very old backup', () => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-03-30'));
+      expect(getBackupStalenessTone('2024-01-01T00:00:00.000Z')).toBe('urgent');
     });
   });
 });

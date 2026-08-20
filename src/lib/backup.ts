@@ -4,9 +4,29 @@
  */
 
 import type { Category, Item, ItemField, Reminder, HistoryEntry, AppSettings } from '@/db/schema';
+import type { DisplayStatus } from '@/types';
+import { daysUntilDate } from '@/lib/dates';
 
 /** Current schema version — increment when DB structure changes. */
 export const CURRENT_SCHEMA_VERSION = 2;
+
+/**
+ * How stale the last backup is, expressed with the same status vocabulary
+ * used for item deadlines so the Settings row can reuse the existing
+ * status color/weight helpers. 'expired' is never returned — a backup
+ * doesn't expire, it just gets older.
+ *
+ * < 30 days → ok, 30-89 days → warning, 90+ days → urgent.
+ * No backup yet → ok (a new user hasn't had a chance to back up; not
+ * worth alarming them on day one).
+ */
+export function getBackupStalenessTone(lastBackupDate: string | null): DisplayStatus {
+  if (!lastBackupDate) return 'ok';
+  const daysSince = -daysUntilDate(new Date(lastBackupDate));
+  if (daysSince >= 90) return 'urgent';
+  if (daysSince >= 30) return 'warning';
+  return 'ok';
+}
 
 /**
  * Structure of an exported backup file (before encryption).

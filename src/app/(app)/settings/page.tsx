@@ -23,6 +23,9 @@ import { useTheme, type ThemeMode } from '@/hooks/use-theme';
 import { db } from '@/db/database';
 import { CategoryIcon } from '@/components/ui/category-icon';
 import { useBackup } from '@/hooks/use-backup';
+import { getBackupStalenessTone } from '@/lib/backup';
+import { getStatusColor, getStatusFontWeight } from '@/lib/status';
+import { daysUntilDate } from '@/lib/dates';
 import { saveAndShareFile } from '@/lib/native-file';
 import { useBiometric } from '@/hooks/use-biometric';
 import { useNotificationSettings } from '@/hooks/use-notification-settings';
@@ -46,7 +49,7 @@ import { formatOffsetsSummary } from '@/constants/reminder-presets';
 interface SettingsRowProps {
   icon: React.ReactNode;
   label: string;
-  description?: string;
+  description?: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
   destructive?: boolean;
@@ -117,6 +120,32 @@ function Modal({ children, onClose }: ModalProps) {
         {children}
       </div>
     </div>
+  );
+}
+
+/**
+ * Renders the Backup row's description. Recent backups (or no backup yet)
+ * get the plain "Last: <date>" text everyone already sees. A stale backup
+ * switches to a status-colored nudge so it's visible without opening the
+ * row — color + weight are enough here since this is a single settings
+ * row, not a sortable list where position also carries meaning.
+ */
+function renderBackupDescription(lastBackupDate: string | null): React.ReactNode {
+  if (!lastBackupDate) return 'Create an encrypted backup';
+
+  const tone = getBackupStalenessTone(lastBackupDate);
+  if (tone === 'ok') {
+    return `Last: ${new Date(lastBackupDate).toLocaleDateString()}`;
+  }
+
+  const daysSince = -daysUntilDate(new Date(lastBackupDate));
+  return (
+    <span
+      className={getStatusFontWeight(tone)}
+      style={{ color: getStatusColor(tone) }}
+    >
+      Last backup {daysSince} {daysSince === 1 ? 'day' : 'days'} ago — back up now
+    </span>
   );
 }
 
@@ -339,10 +368,10 @@ export default function SettingsPage() {
     // Re-seed default categories so app isn't broken
     await seedDefaultCategories();
     // Navigate to marketing root. On native this re-triggers the
-    // first-launch marketing page because `deleteAllData` cleared
-    // the `has_seen_marketing` flag from the settings table. On web
-    // this simply returns the user to the landing page, which is a
-    // sensible "fresh start" state.
+    // first-launch marketing page because `deleteAllData` cleared the
+    // has-seen-marketing flag from localStorage. On web this simply
+    // returns the user to the landing page, which is a sensible
+    // "fresh start" state.
     router.push('/');
   };
 
@@ -603,7 +632,7 @@ export default function SettingsPage() {
         <SettingsRow
           icon={<HardDrive size={20} />}
           label="Backup"
-          description={lastBackupDate ? `Last: ${new Date(lastBackupDate).toLocaleDateString()}` : 'Create an encrypted backup'}
+          description={renderBackupDescription(lastBackupDate)}
           onClick={() => {
             setBackupError(null);
             setBackupPassphrase('');
