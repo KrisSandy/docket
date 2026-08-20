@@ -10,7 +10,6 @@ import { useItems } from '@/hooks/use-items';
 import { useItemFields } from '@/hooks/use-item-fields';
 import { useReminders } from '@/hooks/use-reminders';
 import { DashboardMetrics } from '@/components/dashboard/dashboard-metrics';
-import { UpcomingDeadlines } from '@/components/dashboard/upcoming-deadlines';
 import { ReviewSheet } from '@/components/dashboard/review-sheet';
 import { RenewDialog } from '@/components/dashboard/renew-dialog';
 import { DismissDialog, type DismissDuration } from '@/components/dashboard/dismiss-dialog';
@@ -310,20 +309,7 @@ export default function DashboardPage() {
         onAttentionTap={handleReviewOpen}
       />
 
-      {/* Upcoming Deadlines */}
-      {data.upcomingDeadlines.length > 0 && (
-        <section>
-          <SectionHeader title="Upcoming" />
-          <UpcomingDeadlines
-            items={data.upcomingDeadlines}
-            onItemClick={handleItemClick}
-            onMarkPaid={handleMarkBillingPaid}
-            markingPaidId={markingPaidId}
-          />
-        </section>
-      )}
-
-      {/* Category Filter Chips */}
+{/* Category Filter Chips */}
       {data.categories.length > 1 && (
         <div className="flex gap-2 overflow-x-auto px-1 pb-1 -mx-1 scrollbar-none">
           <button
