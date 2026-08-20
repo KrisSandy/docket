@@ -10,28 +10,7 @@ import {
 } from '@/lib/backup';
 import { rescheduleAllReminders } from '@/lib/reminder-sync';
 import { cancelAllNotifications } from '@/lib/notifications';
-
-/**
- * Clear biometric credentials from native Keychain (iOS) / Keystore (Android).
- * No-op on web or if the biometric plugin is not available.
- */
-async function clearNativeCredentials(): Promise<void> {
-  try {
-    const mod = await import('@aparajita/capacitor-biometric-auth');
-    // The plugin doesn't expose a direct "delete key" API,
-    // but we can reset by ensuring no stored biometric preference remains.
-    // The actual keychain entry is managed by the OS biometric enrollment.
-    // What we CAN do is ensure our app-level settings are wiped (done in the
-    // DB clear step) and attempt to invalidate any cached auth state.
-    if (mod.BiometricAuth) {
-      // No explicit "clear credentials" API — the DB wipe removes our
-      // BIOMETRIC_ENABLED_KEY and BIOMETRIC_ENROLLMENT_KEY settings,
-      // which effectively resets biometric for the app.
-    }
-  } catch {
-    // Plugin not available (web) — no-op
-  }
-}
+import { clearMarketingSeen } from '@/lib/first-launch';
 
 export type { BackupData };
 
@@ -159,14 +138,12 @@ export function useBackup() {
 
   /**
    * Delete all user data (GDPR compliance).
-   * Cancels notifications, clears Keychain/Keystore, wipes all tables.
+   * Cancels notifications, wipes all tables. Biometric settings are reset
+   * as part of the settings table wipe below.
    */
   const deleteAllData = useCallback(async (): Promise<void> => {
     // Cancel all notifications first
     await cancelAllNotifications();
-
-    // Clear biometric credentials from native keychain/keystore
-    await clearNativeCredentials();
 
     // Wipe all tables atomically
     await db.transaction(
@@ -181,6 +158,11 @@ export function useBackup() {
         await db.settings.clear();
       }
     );
+
+    // The has-seen-marketing flag lives in localStorage, not the settings
+    // table, so it needs to be cleared explicitly to reset first-launch
+    // state on a full data wipe.
+    clearMarketingSeen();
   }, []);
 
   /**

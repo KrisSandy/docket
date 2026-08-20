@@ -61,7 +61,7 @@ describe('MarketingGate', () => {
     });
 
     it('redirects to /dashboard when marketing has been seen', async () => {
-      mockHasSeen.mockResolvedValue(true);
+      mockHasSeen.mockReturnValue(true);
 
       render(
         <MarketingGate>
@@ -76,7 +76,7 @@ describe('MarketingGate', () => {
     });
 
     it('does not redirect on first launch when marketing has not been seen', async () => {
-      mockHasSeen.mockResolvedValue(false);
+      mockHasSeen.mockReturnValue(false);
 
       render(
         <MarketingGate>
@@ -92,8 +92,8 @@ describe('MarketingGate', () => {
       expect(screen.getByTestId('child')).toBeInTheDocument();
     });
 
-    it('does not redirect if the DB check throws (fails open to marketing)', async () => {
-      mockHasSeen.mockRejectedValue(new Error('db error'));
+    it('checks synchronously — redirects within the same effect tick with no async gap', async () => {
+      mockHasSeen.mockReturnValue(true);
 
       render(
         <MarketingGate>
@@ -101,15 +101,14 @@ describe('MarketingGate', () => {
         </MarketingGate>
       );
 
-      await waitFor(() => {
-        expect(mockHasSeen).toHaveBeenCalled();
-      });
-      expect(mockReplace).not.toHaveBeenCalled();
-      expect(screen.getByTestId('child')).toBeInTheDocument();
+      // No `await` before this assertion — a synchronous check means the
+      // redirect fires within the effect itself, not after a microtask
+      // or promise resolution that would leave a window for a flash.
+      expect(mockReplace).toHaveBeenCalledWith('/dashboard');
     });
 
     it('always renders children on initial mount (no loading placeholder)', () => {
-      mockHasSeen.mockResolvedValue(true);
+      mockHasSeen.mockReturnValue(true);
 
       render(
         <MarketingGate>
@@ -117,9 +116,10 @@ describe('MarketingGate', () => {
         </MarketingGate>
       );
 
-      // Before the async check resolves, children are already present.
-      // A brief visual flash is the deliberate trade-off for being
-      // SEO-safe and hydration-safe.
+      // Children are present in the DOM even though native "seen" users
+      // are redirected — the pre-hydration inline script (tested
+      // separately) is what actually prevents the visible flash on
+      // native; this component is a synchronous fallback.
       expect(screen.getByTestId('child')).toBeInTheDocument();
     });
   });

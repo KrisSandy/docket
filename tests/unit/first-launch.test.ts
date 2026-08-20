@@ -1,40 +1,27 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-
-const { mockGet, mockPut } = vi.hoisted(() => ({
-  mockGet: vi.fn(),
-  mockPut: vi.fn(),
-}));
-
-vi.mock('@/db/database', () => ({
-  db: {
-    settings: {
-      get: mockGet,
-      put: mockPut,
-    },
-  },
-}));
-
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
   HAS_SEEN_MARKETING_KEY,
   hasSeenMarketing,
   isNativePlatform,
   markMarketingSeen,
+  clearMarketingSeen,
 } from '@/lib/first-launch';
 
 describe('first-launch helpers', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    window.localStorage.clear();
     // Ensure no Capacitor global by default
     delete (window as unknown as { Capacitor?: unknown }).Capacitor;
   });
 
   afterEach(() => {
+    window.localStorage.clear();
     delete (window as unknown as { Capacitor?: unknown }).Capacitor;
   });
 
   describe('HAS_SEEN_MARKETING_KEY', () => {
-    it('uses the expected settings key', () => {
-      expect(HAS_SEEN_MARKETING_KEY).toBe('has_seen_marketing');
+    it('uses the expected localStorage key', () => {
+      expect(HAS_SEEN_MARKETING_KEY).toBe('hd_has_seen_marketing');
     });
   });
 
@@ -64,47 +51,58 @@ describe('first-launch helpers', () => {
   });
 
   describe('hasSeenMarketing', () => {
-    it('returns false when the setting has never been written', async () => {
-      mockGet.mockResolvedValue(undefined);
-      await expect(hasSeenMarketing()).resolves.toBe(false);
-      expect(mockGet).toHaveBeenCalledWith('has_seen_marketing');
+    it('returns false when the flag has never been written', () => {
+      expect(hasSeenMarketing()).toBe(false);
     });
 
-    it('returns true when the stored value is exactly "true"', async () => {
-      mockGet.mockResolvedValue({ key: 'has_seen_marketing', value: 'true' });
-      await expect(hasSeenMarketing()).resolves.toBe(true);
+    it('returns true when the stored value is exactly "true"', () => {
+      window.localStorage.setItem(HAS_SEEN_MARKETING_KEY, 'true');
+      expect(hasSeenMarketing()).toBe(true);
     });
 
-    it('returns false for any other stored value', async () => {
-      mockGet.mockResolvedValue({ key: 'has_seen_marketing', value: 'false' });
-      await expect(hasSeenMarketing()).resolves.toBe(false);
+    it('returns false for any other stored value', () => {
+      window.localStorage.setItem(HAS_SEEN_MARKETING_KEY, 'false');
+      expect(hasSeenMarketing()).toBe(false);
 
-      mockGet.mockResolvedValue({ key: 'has_seen_marketing', value: '1' });
-      await expect(hasSeenMarketing()).resolves.toBe(false);
+      window.localStorage.setItem(HAS_SEEN_MARKETING_KEY, '1');
+      expect(hasSeenMarketing()).toBe(false);
 
-      mockGet.mockResolvedValue({ key: 'has_seen_marketing', value: '' });
-      await expect(hasSeenMarketing()).resolves.toBe(false);
+      window.localStorage.setItem(HAS_SEEN_MARKETING_KEY, '');
+      expect(hasSeenMarketing()).toBe(false);
     });
 
-    it('swallows DB errors and returns false (fail-open to marketing)', async () => {
-      mockGet.mockRejectedValue(new Error('db exploded'));
-      await expect(hasSeenMarketing()).resolves.toBe(false);
+    it('is synchronous — reads without awaiting anything', () => {
+      window.localStorage.setItem(HAS_SEEN_MARKETING_KEY, 'true');
+      const result = hasSeenMarketing();
+      expect(typeof result).toBe('boolean');
     });
   });
 
   describe('markMarketingSeen', () => {
-    it('writes the flag with value "true"', async () => {
-      mockPut.mockResolvedValue(undefined);
-      await markMarketingSeen();
-      expect(mockPut).toHaveBeenCalledWith({
-        key: 'has_seen_marketing',
-        value: 'true',
-      });
+    it('writes the flag with value "true"', () => {
+      markMarketingSeen();
+      expect(window.localStorage.getItem(HAS_SEEN_MARKETING_KEY)).toBe('true');
     });
 
-    it('resolves even if the DB write fails (best-effort)', async () => {
-      mockPut.mockRejectedValue(new Error('quota exceeded'));
-      await expect(markMarketingSeen()).resolves.toBeUndefined();
+    it('makes hasSeenMarketing return true afterwards', () => {
+      expect(hasSeenMarketing()).toBe(false);
+      markMarketingSeen();
+      expect(hasSeenMarketing()).toBe(true);
+    });
+  });
+
+  describe('clearMarketingSeen', () => {
+    it('removes the flag so hasSeenMarketing returns false again', () => {
+      markMarketingSeen();
+      expect(hasSeenMarketing()).toBe(true);
+
+      clearMarketingSeen();
+      expect(hasSeenMarketing()).toBe(false);
+    });
+
+    it('is safe to call when the flag was never set', () => {
+      expect(() => clearMarketingSeen()).not.toThrow();
+      expect(hasSeenMarketing()).toBe(false);
     });
   });
 });

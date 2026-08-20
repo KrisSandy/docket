@@ -3,23 +3,27 @@
  *
  * On native (iOS/Android via Capacitor), the marketing landing page should
  * only be shown on the very first app launch. Once the user taps "Open App",
- * the `has_seen_marketing` flag is written to the Dexie settings table and
- * subsequent launches redirect straight to the dashboard.
+ * the `has_seen_marketing` flag is written to localStorage and subsequent
+ * launches skip straight to the dashboard.
  *
- * Because the flag lives in the same `settings` table that is wiped by
- * `useBackup().deleteAllData()` (via `db.settings.clear()`), clearing all
- * data from Settings automatically resets first-launch state — so the
- * marketing page will be shown again on the next launch, exactly as
- * required. No extra reset logic needed.
+ * localStorage (not Dexie/IndexedDB) is the source of truth because it's
+ * synchronous: on a native cold start, opening IndexedDB takes long enough
+ * that an async check causes a visible flash of the marketing page before
+ * the redirect fires. A synchronous check lets the pre-hydration inline
+ * script in `(marketing)/page.tsx` redirect before the browser ever paints
+ * marketing content, and lets `MarketingGate` redirect within the same
+ * effect tick as a fallback.
+ *
+ * `useBackup().deleteAllData()` explicitly clears this key too, so a full
+ * data wipe still resets first-launch state, matching the old behaviour
+ * where the flag lived in the `settings` table that gets wiped.
  *
  * On web (next build static export served over HTTP), the gate is a no-op:
  * the marketing page is the primary SEO landing page and must always
  * render for crawlers and repeat visitors.
  */
 
-import { db } from '@/db/database';
-
-export const HAS_SEEN_MARKETING_KEY = 'has_seen_marketing';
+export const HAS_SEEN_MARKETING_KEY = 'hd_has_seen_marketing';
 
 /**
  * Returns true when the app is running inside a native Capacitor shell
@@ -38,13 +42,15 @@ export function isNativePlatform(): boolean {
 }
 
 /**
- * Reads the has-seen-marketing flag from the Dexie settings table.
- * Returns false on any DB error so the marketing page is shown by default.
+ * Synchronous read of the has-seen-marketing flag. Safe to call during
+ * SSR (returns false) and cheap enough to call on every render — no
+ * IndexedDB round-trip. Returns false on any storage error so the
+ * marketing page is shown by default.
  */
-export async function hasSeenMarketing(): Promise<boolean> {
+export function hasSeenMarketing(): boolean {
+  if (typeof window === 'undefined') return false;
   try {
-    const setting = await db.settings.get(HAS_SEEN_MARKETING_KEY);
-    return setting?.value === 'true';
+    return window.localStorage.getItem(HAS_SEEN_MARKETING_KEY) === 'true';
   } catch {
     return false;
   }
@@ -53,14 +59,27 @@ export async function hasSeenMarketing(): Promise<boolean> {
 /**
  * Persists the has-seen-marketing flag so subsequent native launches
  * skip the marketing page and go straight to the dashboard.
- * Best-effort: any DB failure is swallowed so navigation still proceeds.
+ * Best-effort: any storage failure is swallowed so navigation still
+ * proceeds.
  */
-export async function markMarketingSeen(): Promise<void> {
+export function markMarketingSeen(): void {
   try {
-    await db.settings.put({ key: HAS_SEEN_MARKETING_KEY, value: 'true' });
+    window.localStorage.setItem(HAS_SEEN_MARKETING_KEY, 'true');
   } catch {
     // Best effort — the user experience (getting into the app) must not
     // be blocked by a storage failure. Worst case: marketing shows again
     // on the next launch, which is harmless.
+  }
+}
+
+/**
+ * Clears the has-seen-marketing flag. Called by the GDPR "delete all
+ * data" flow so a full data wipe resets first-launch state.
+ */
+export function clearMarketingSeen(): void {
+  try {
+    window.localStorage.removeItem(HAS_SEEN_MARKETING_KEY);
+  } catch {
+    // Best effort — see markMarketingSeen.
   }
 }
