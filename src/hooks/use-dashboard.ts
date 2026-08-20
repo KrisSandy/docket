@@ -70,11 +70,23 @@ export function useDashboard() {
       const daysUntilDeadline = earliestDeadline
         ? daysUntilDate(earliestDeadline)
         : null;
+
+      // For auto-pay items, billing_date is handled automatically — exclude it from
+      // status calculation so it doesn't trigger warning/urgent on the card.
+      const isAutoPay =
+        fields.find((f) => f.fieldKey === 'payment_method')?.fieldValue ===
+        'Automatic (Direct Debit)';
+      const statusDateValues = fields
+        .filter((f) => f.fieldType === 'date' && !(isAutoPay && f.fieldKey === 'billing_date'))
+        .map((f) => f.fieldValue);
+      const statusDeadline = getEarliestDeadline(statusDateValues);
+      const daysUntilStatus = statusDeadline ? daysUntilDate(statusDeadline) : null;
+
       // Check if item is dismissed (snoozed)
       const isDismissed = item.dismissedUntil !== null
         && item.dismissedUntil !== undefined
         && item.dismissedUntil > new Date();
-      const displayStatus = isDismissed ? 'ok' as DisplayStatus : calculateStatus(daysUntilDeadline);
+      const displayStatus = isDismissed ? 'ok' as DisplayStatus : calculateStatus(daysUntilStatus);
 
       // Build a key date label
       let keyDateLabel: string | null = null;
@@ -214,11 +226,19 @@ export function useDashboard() {
         fieldMap.get('billing_date')?.fieldValue
       );
 
+      // Auto-pay items: billing_date reminder is informational only — show as 'ok'
+      const isAutoPayItem =
+        fieldMap.get('payment_method')?.fieldValue === 'Automatic (Direct Debit)';
+      const deadlineStatus =
+        isAutoPayItem && earliestFieldKey === 'billing_date'
+          ? ('ok' as DisplayStatus)
+          : i.displayStatus;
+
       upcomingDeadlines.push({
         id: i.id,
         title: i.title,
         daysUntil: i.daysUntilDeadline,
-        status: i.displayStatus,
+        status: deadlineStatus,
         dateLabel: i.keyDateLabel!,
         isBillingItem,
       });

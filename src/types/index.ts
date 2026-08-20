@@ -36,11 +36,8 @@ export interface CategoryTemplate {
 }
 
 export const PAYMENT_METHOD_OPTIONS = [
-  'Direct Debit',
-  'Credit Card',
-  'Debit Card',
-  'Bank Transfer',
-  'Cash',
+  'Automatic (Direct Debit)',
+  'Manual',
 ] as const;
 
 export type PaymentMethod = (typeof PAYMENT_METHOD_OPTIONS)[number];
