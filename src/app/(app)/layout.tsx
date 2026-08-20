@@ -6,7 +6,6 @@ import { LockScreen } from '@/components/layout/lock-screen';
 import { NotificationPermissionBanner } from '@/components/layout/notification-permission-banner';
 import { useBiometric } from '@/hooks/use-biometric';
 import { useNotificationInit } from '@/hooks/use-notification-init';
-import { db } from '@/db/database';
 import { seedDefaultCategories } from '@/db/seed';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -16,16 +15,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   useNotificationInit();
 
   useEffect(() => {
-    const init = async () => {
-      // DEV ONLY: clean up legacy categories from earlier schema.
-      // Remove this block before production launch.
-      const legacy = await db.categories.where('name').equals('Connectivity').first();
-      if (legacy) {
-        await db.categories.delete(legacy.id);
-      }
-      await seedDefaultCategories();
-    };
-    init();
+    seedDefaultCategories();
   }, []);
 
   // Show lock screen when biometric is enabled and app is locked
