@@ -217,26 +217,15 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
 
   return (
     <div>
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={handleCancel}
-          className="flex min-h-[44px] min-w-[44px] items-center gap-1 -ml-2 px-2 text-muted-foreground transition-colors hover:text-foreground"
-          aria-label="Cancel editing"
-        >
-          <X size={20} />
-          <span className="text-[15px]">Cancel</span>
-        </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving || !hasChanges}
-          className="flex min-h-[44px] items-center gap-2 rounded-xl bg-primary px-5 py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-        >
-          <Save size={16} />
-          {isSaving ? 'Saving...' : 'Save'}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={handleCancel}
+        className="flex min-h-[44px] min-w-[44px] items-center gap-1 -ml-2 px-2 text-muted-foreground transition-colors hover:text-foreground"
+        aria-label="Cancel editing"
+      >
+        <X size={20} />
+        <span className="text-[15px]">Cancel</span>
+      </button>
 
       <h1 className="mt-4 text-[28px] font-bold tracking-tight">
         Edit {item.title}
@@ -271,6 +260,17 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
       >
         <Plus size={18} />
         Add Custom Field
+      </button>
+
+      {/* Save Button */}
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={isSaving || !hasChanges}
+        className="mt-8 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+      >
+        <Save size={16} />
+        {isSaving ? 'Saving...' : 'Save'}
       </button>
 
       {/* Add Custom Field Dialog */}
