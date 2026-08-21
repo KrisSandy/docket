@@ -6,6 +6,7 @@ import { LockScreen } from '@/components/layout/lock-screen';
 import { NotificationPermissionBanner } from '@/components/layout/notification-permission-banner';
 import { useBiometric } from '@/hooks/use-biometric';
 import { useNotificationInit } from '@/hooks/use-notification-init';
+import { useHardwareBackButton } from '@/hooks/use-hardware-back-button';
 import { seedDefaultCategories } from '@/db/seed';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
@@ -13,6 +14,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   // Initialize notification system: tap handler, reschedule on launch/foreground
   useNotificationInit();
+
+  // Route the Android hardware/gesture back button through in-app navigation
+  useHardwareBackButton();
 
   useEffect(() => {
     seedDefaultCategories();

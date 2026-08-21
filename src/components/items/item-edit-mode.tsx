@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Plus, Save, X } from 'lucide-react';
 import { useItemFields } from '@/hooks/use-item-fields';
+import { useBackHandler } from '@/hooks/use-back-handler';
 import { FieldEditor } from '@/components/items/field-editor';
 import { AddCustomFieldDialog } from '@/components/items/add-custom-field-dialog';
 import { getTemplateFields } from '@/lib/templates';
@@ -199,6 +200,16 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
     }
   };
 
+  // Hardware/gesture back button cancels the edit instead of leaving the
+  // screen — dismisses the discard-confirm dialog first if it's open.
+  useBackHandler(() => {
+    if (showDiscardConfirm) {
+      setShowDiscardConfirm(false);
+    } else {
+      handleCancel();
+    }
+  });
+
   const handleAddCustomField = async (label: string, fieldType: FieldType) => {
     const newFieldId = await addCustomField(item.id, label, fieldType);
     setFieldStates((prev) => [
@@ -217,17 +228,7 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={handleCancel}
-        className="flex min-h-[44px] min-w-[44px] items-center gap-1 -ml-2 px-2 text-muted-foreground transition-colors hover:text-foreground"
-        aria-label="Cancel editing"
-      >
-        <X size={20} />
-        <span className="text-[15px]">Cancel</span>
-      </button>
-
-      <h1 className="mt-4 text-[28px] font-bold tracking-tight">
+      <h1 className="text-[28px] font-bold tracking-tight">
         Edit {item.title}
       </h1>
 
@@ -262,16 +263,26 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
         Add Custom Field
       </button>
 
-      {/* Save Button */}
-      <button
-        type="button"
-        onClick={handleSave}
-        disabled={isSaving || !hasChanges}
-        className="mt-8 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-      >
-        <Save size={16} />
-        {isSaving ? 'Saving...' : 'Save'}
-      </button>
+      {/* Cancel / Save Buttons */}
+      <div className="mt-8 flex gap-3">
+        <button
+          type="button"
+          onClick={handleCancel}
+          className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-muted px-5 py-3 text-[15px] font-semibold text-foreground transition-colors hover:bg-muted/70"
+        >
+          <X size={16} />
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving || !hasChanges}
+          className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+        >
+          <Save size={16} />
+          {isSaving ? 'Saving...' : 'Save'}
+        </button>
+      </div>
 
       {/* Add Custom Field Dialog */}
       {showAddField && (
