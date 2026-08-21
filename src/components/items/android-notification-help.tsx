@@ -1,17 +1,25 @@
 'use client';
 
-import { ExternalLink, AlertTriangle } from 'lucide-react';
+import { ExternalLink, AlertTriangle, X } from 'lucide-react';
+import { useBatteryWarningDismissed } from '@/hooks/use-battery-warning-dismissed';
 
 /**
  * Help text shown in Settings for Android users about battery optimization
- * potentially affecting notification reliability.
+ * potentially affecting notification reliability. Dismissible; the choice
+ * is persisted so it never shows again once dismissed.
  */
 export function AndroidNotificationHelp() {
+  const { dismissed, loading, dismiss } = useBatteryWarningDismissed();
+
+  if (loading || dismissed) {
+    return null;
+  }
+
   return (
     <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 dark:border-amber-800 dark:bg-amber-950/30">
       <div className="flex items-start gap-3">
         <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
-        <div className="space-y-2">
+        <div className="flex-1 space-y-2">
           <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
             Battery optimization may affect reminders
           </p>
@@ -30,6 +38,13 @@ export function AndroidNotificationHelp() {
             <ExternalLink className="h-3.5 w-3.5" />
           </a>
         </div>
+        <button
+          onClick={() => dismiss()}
+          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-amber-600 hover:bg-amber-100 dark:text-amber-400 dark:hover:bg-amber-900/50"
+          aria-label="Dismiss battery optimization warning"
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
     </div>
   );
