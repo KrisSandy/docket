@@ -26,7 +26,6 @@ interface FieldState {
   fieldType: FieldType;
   value: string;
   originalValue: string;
-  isTemplateField: boolean;
 }
 
 export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: ItemEditModeProps) {
@@ -73,7 +72,6 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
       fieldType: f.fieldType,
       value: f.fieldValue ?? '',
       originalValue: f.fieldValue ?? '',
-      isTemplateField: f.isTemplateField,
     }))
   );
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -212,7 +210,6 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
         fieldType,
         value: '',
         originalValue: '',
-        isTemplateField: false,
       },
     ]);
     setShowAddField(false);
@@ -255,7 +252,6 @@ export function ItemEditMode({ item, fields, categoryName, onSave, onCancel }: I
               label={field.label}
               value={field.value}
               fieldType={field.fieldType}
-              isRequired={field.isTemplateField}
               onChange={(value) => handleFieldChange(field.id, value)}
               error={errors[field.id]}
               helperText={fieldHelperTextMap.get(field.fieldKey)}

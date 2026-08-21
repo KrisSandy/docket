@@ -32,7 +32,6 @@ import { useNotificationSettings } from '@/hooks/use-notification-settings';
 import { AndroidNotificationHelp } from '@/components/items/android-notification-help';
 import { validateEncryptedPayload } from '@/lib/encryption';
 import { seedDefaultCategories } from '@/db/seed';
-import { seedTestNotifications, clearTestNotifications } from '@/lib/seed-test-notifications';
 import {
   loadPreferences,
   savePreferences,
@@ -171,7 +170,6 @@ export default function SettingsPage() {
   const {
     exportEncrypted,
     exportJSON,
-    exportCSV,
     restoreFromEncrypted,
     deleteAllData,
     getLastBackupDate,
@@ -213,7 +211,6 @@ export default function SettingsPage() {
 
   // GDPR export state
   const [isExportingData, setIsExportingData] = useState(false);
-  const [exportFormat, setExportFormat] = useState<'json' | 'csv'>('json');
 
   // Delete state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -224,11 +221,6 @@ export default function SettingsPage() {
   const [reminderPrefs, setReminderPrefs] = useState<ReminderPreferences | null>(null);
   const [reminderTimeSaved, setReminderTimeSaved] = useState(false);
   const [showGlobalPresetSheet, setShowGlobalPresetSheet] = useState(false);
-
-  // Dev tools state
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
-  const [seedResult, setSeedResult] = useState<string | null>(null);
 
   // Load initial data
   useEffect(() => {
@@ -348,13 +340,8 @@ export default function SettingsPage() {
     setIsExportingData(true);
     try {
       const dateStr = new Date().toISOString().split('T')[0];
-      if (exportFormat === 'json') {
-        const json = await exportJSON();
-        await saveAndShareFile(`homedocket-export-${dateStr}.json`, json, 'application/json');
-      } else {
-        const csv = await exportCSV();
-        await saveAndShareFile(`homedocket-export-${dateStr}.csv`, csv, 'text/csv');
-      }
+      const json = await exportJSON();
+      await saveAndShareFile(`homedocket-export-${dateStr}.json`, json, 'application/json');
     } finally {
       setIsExportingData(false);
     }
@@ -399,34 +386,6 @@ export default function SettingsPage() {
     setReminderPrefs(updated);
     await savePreferences(updated);
     setShowGlobalPresetSheet(false);
-  };
-
-  const handleSeedTestNotifications = async () => {
-    setIsSeeding(true);
-    setSeedResult(null);
-    try {
-      const result = await seedTestNotifications();
-      setSeedResult(
-        `Created ${result.itemsCreated} test items, scheduled ${result.notificationsScheduled} notifications`
-      );
-    } catch (err) {
-      setSeedResult(`Error: ${err instanceof Error ? err.message : 'Failed to seed'}`);
-    } finally {
-      setIsSeeding(false);
-    }
-  };
-
-  const handleClearTestNotifications = async () => {
-    setIsClearing(true);
-    setSeedResult(null);
-    try {
-      const count = await clearTestNotifications();
-      setSeedResult(`Removed ${count} test item${count === 1 ? '' : 's'}`);
-    } catch (err) {
-      setSeedResult(`Error: ${err instanceof Error ? err.message : 'Failed to clear'}`);
-    } finally {
-      setIsClearing(false);
-    }
   };
 
   return (
@@ -659,25 +618,14 @@ export default function SettingsPage() {
             <p className="text-[15px] text-foreground">Export My Data</p>
             <p className="text-[13px] text-muted-foreground mt-0.5">Download all your data</p>
           </div>
-          <div className="flex items-center gap-2">
-            <select
-              value={exportFormat}
-              onChange={(e) => setExportFormat(e.target.value as 'json' | 'csv')}
-              className="min-h-[36px] rounded-lg border border-border bg-card px-2 py-1 text-[13px] text-foreground"
-              aria-label="Export format"
-            >
-              <option value="json">JSON</option>
-              <option value="csv">CSV</option>
-            </select>
-            <button
-              type="button"
-              onClick={handleGDPRExport}
-              disabled={isExportingData}
-              className="min-h-[36px] rounded-lg bg-primary px-3 py-1 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-            >
-              {isExportingData ? '...' : 'Export'}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleGDPRExport}
+            disabled={isExportingData}
+            className="min-h-[36px] rounded-lg bg-primary px-3 py-1 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+          >
+            {isExportingData ? '...' : 'Export'}
+          </button>
         </div>
         <SettingsRow
           icon={<Trash2 size={20} />}
@@ -686,59 +634,6 @@ export default function SettingsPage() {
           onClick={() => setShowDeleteConfirm(true)}
           destructive
         />
-      </SettingsSection>
-
-      {/* ===== Dev Tools ===== */}
-      <SettingsSection title="Dev Tools">
-        <div className="px-4 py-4">
-          <p className="text-[13px] text-muted-foreground mb-3">
-            Seed test items with dates set to trigger notifications at staggered times.
-            Items are prefixed with [TEST] for easy identification.
-          </p>
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handleSeedTestNotifications}
-                disabled={isSeeding || isClearing}
-                className="min-h-[44px] rounded-xl bg-primary px-4 py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-              >
-                {isSeeding ? 'Seeding...' : 'Seed Test Data'}
-              </button>
-              <button
-                type="button"
-                onClick={handleClearTestNotifications}
-                disabled={isSeeding || isClearing}
-                className="min-h-[44px] rounded-xl bg-muted px-4 py-3 text-[15px] font-semibold text-foreground transition-colors hover:bg-muted/70 disabled:opacity-50"
-              >
-                {isClearing ? 'Clearing...' : 'Clear Test Data'}
-              </button>
-            </div>
-            {seedResult && (
-              <p className={`text-[13px] ${seedResult.startsWith('Error') ? 'text-destructive' : 'text-muted-foreground'}`}>
-                {seedResult}
-              </p>
-            )}
-            <div className="rounded-lg bg-muted/40 p-3 space-y-1.5">
-              <p className="text-[13px] font-medium text-foreground">What gets created:</p>
-              <p className="text-[12px] text-muted-foreground">
-                <span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-1.5 align-middle" />
-                4 notifications fire in <span className="font-semibold">10–40 seconds</span> (NCT, Motor Tax, LPT, Insurance)
-              </p>
-              <p className="text-[12px] text-muted-foreground">
-                <span className="inline-block w-3 h-3 rounded-full bg-amber-500 mr-1.5 align-middle" />
-                Future reminders scheduled via standard path (tomorrow+)
-              </p>
-              <p className="text-[12px] text-muted-foreground">
-                <span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-1.5 align-middle" />
-                1 expired item (no notifications — past deadline)
-              </p>
-              <p className="text-[11px] text-muted-foreground/70 mt-1">
-                Ensure notifications are enabled above and the app has OS permission.
-              </p>
-            </div>
-          </div>
-        </div>
       </SettingsSection>
 
       {/* ===== About ===== */}
@@ -825,7 +720,12 @@ export default function SettingsPage() {
               <input
                 ref={fileInputRef}
                 type="file"
-                accept=".hdbackup,.json"
+                // Android's native document picker filters selectable files by
+                // MIME type, not extension. ".hdbackup" has no registered MIME
+                // type, so without a "*/*" fallback Android greys out the very
+                // files this dialog exists to restore. Extension/structure
+                // validation still happens after selection (handleRestoreFileSelected).
+                accept=".hdbackup,.json,*/*"
                 onChange={handleRestoreFileSelected}
                 className="hidden"
               />
