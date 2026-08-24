@@ -10,8 +10,8 @@ export default function manifest(): MetadataRoute.Manifest {
       'Track NCT, motor tax, insurance renewals, utility contracts, and more. Built for Irish households.',
     start_url: '/dashboard',
     display: 'standalone',
-    background_color: '#ffffff',
-    theme_color: '#0073ff',
+    background_color: '#F7F1E8',
+    theme_color: '#F7F1E8',
     orientation: 'portrait',
     categories: ['finance', 'utilities'],
     icons: [

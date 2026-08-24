@@ -41,7 +41,6 @@ import {
 import { rescheduleAllReminders } from '@/lib/reminder-sync';
 import { Clock, CalendarClock } from 'lucide-react';
 import { ReminderPresetSheet } from '@/components/settings/reminder-preset-sheet';
-import { formatOffsetsSummary } from '@/constants/reminder-presets';
 
 // ---------- Shared sub-components ----------
 
@@ -92,10 +91,10 @@ function SettingsRow({
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mt-6">
-      <h2 className="px-4 text-[13px] font-semibold uppercase tracking-wider text-muted-foreground mb-1">
+      <h2 className="px-4 text-[12px] font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
         {title}
       </h2>
-      <div className="rounded-xl border border-border bg-card divide-y divide-border/50">
+      <div className="rounded-lg bg-card shadow-sm divide-y divide-border/50">
         {children}
       </div>
     </section>
@@ -390,7 +389,7 @@ export default function SettingsPage() {
 
   return (
     <div>
-      <h1 className="text-[28px] font-bold tracking-tight">Settings</h1>
+      <h1 className="font-heading text-[34px] font-bold tracking-tight">Settings</h1>
 
       {/* ===== Notifications ===== */}
       <SettingsSection title="Notifications">
@@ -443,7 +442,7 @@ export default function SettingsPage() {
               type="time"
               value={reminderPrefs.notifyTimeLocal}
               onChange={(e) => handleReminderTimeChange(e.target.value)}
-              className="min-h-[44px] rounded-xl border border-border bg-card px-3 py-2 text-[15px] text-foreground"
+              className="min-h-11 rounded-full bg-muted px-4 py-2 font-heading text-[17px] font-bold tracking-tight text-foreground"
               aria-label="Reminder time of day"
             />
           </div>
@@ -452,9 +451,21 @@ export default function SettingsPage() {
         {reminderPrefs && (
           <SettingsRow
             icon={<CalendarClock size={20} />}
-            label="Default reminder schedule"
-            description={formatOffsetsSummary(reminderPrefs.defaultOffsets)}
+            label="Default schedule"
+            description="Days before a deadline"
             onClick={() => setShowGlobalPresetSheet(true)}
+            trailing={
+              <div className="flex gap-1.5">
+                {[...reminderPrefs.defaultOffsets].sort((a, b) => b - a).map((offset) => (
+                  <span
+                    key={offset}
+                    className="flex h-8 items-center rounded-full bg-foreground px-2.75 text-[13px] font-bold text-background"
+                  >
+                    {offset}
+                  </span>
+                ))}
+              </div>
+            }
           />
         )}
         {/* Per-field reminder overrides are set from the item detail screen */}
@@ -540,23 +551,22 @@ export default function SettingsPage() {
               </p>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="flex gap-1 rounded-full bg-muted p-1.25">
             {([
-              { value: 'system' as ThemeMode, label: 'System', icon: <Monitor size={16} /> },
-              { value: 'light' as ThemeMode, label: 'Light', icon: <Sun size={16} /> },
-              { value: 'dark' as ThemeMode, label: 'Dark', icon: <Moon size={16} /> },
+              { value: 'system' as ThemeMode, label: 'System' },
+              { value: 'light' as ThemeMode, label: 'Light' },
+              { value: 'dark' as ThemeMode, label: 'Dark' },
             ]).map((option) => (
               <button
                 key={option.value}
                 type="button"
                 onClick={() => setTheme(option.value)}
-                className={`flex min-h-[44px] items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-[13px] font-semibold transition-all duration-150 active:scale-95 ${
+                className={`flex min-h-10.5 flex-1 items-center justify-center rounded-full text-[14px] transition-all duration-150 active:scale-95 ${
                   themeMode === option.value
-                    ? 'bg-primary text-primary-foreground shadow-sm shadow-primary/20'
-                    : 'bg-muted/40 text-muted-foreground hover:bg-muted/70'
+                    ? 'bg-card font-bold text-foreground shadow-sm'
+                    : 'font-semibold text-muted-foreground'
                 }`}
               >
-                {option.icon}
                 {option.label}
               </button>
             ))}

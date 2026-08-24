@@ -2,53 +2,65 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Pencil, Archive, History, ChevronDown, ChevronUp, BellOff, Bell } from 'lucide-react';
+import {
+  ChevronLeft,
+  Pencil,
+  Archive,
+  ChevronUp,
+  ChevronRight,
+  BellOff,
+  Check,
+} from 'lucide-react';
 import { useItems } from '@/hooks/use-items';
 import { useItemFields } from '@/hooks/use-item-fields';
-import { useReminders, type ReminderSummary } from '@/hooks/use-reminders';
+import { useReminders } from '@/hooks/use-reminders';
 import { useHistory } from '@/hooks/use-history';
-import { BackButton } from '@/components/layout/back-button';
 import { FieldRenderer } from '@/components/items/field-renderer';
 import { DateReminderButton } from '@/components/items/date-reminder-button';
-import { StatusBadge } from '@/components/items/status-badge';
+import { ProgressRing } from '@/components/items/progress-ring';
 import { ItemEditMode } from '@/components/items/item-edit-mode';
 import { HistoryTimeline } from '@/components/items/history-timeline';
+import { CategoryIcon } from '@/components/ui/category-icon';
+import { RenewDialog } from '@/components/dashboard/renew-dialog';
+import { DismissDialog, type DismissDuration } from '@/components/dashboard/dismiss-dialog';
 import { db } from '@/db/database';
 import type { Item, ItemField, HistoryEntry } from '@/db/schema';
-import type { DisplayStatus } from '@/types';
+import type { DashboardItem, DisplayStatus, ServiceType } from '@/types';
 import { daysUntilDate, getEarliestDeadline, formatDate } from '@/lib/dates';
-import { calculateStatus } from '@/lib/status';
-import { formatOffsetsSummary } from '@/constants/reminder-presets';
+import { calculateStatus, getStatusColor, getStatusTint } from '@/lib/status';
+
+const WINDOW_DAYS = 90;
 
 export default function ItemDetailPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const id = searchParams.get('id') ?? '';
 
-  const { getItem, updateItem, clearDismissal } = useItems();
-  const { getFieldsForItem } = useItemFields();
-  const { getReminderSummary } = useReminders();
+  const { getItem, updateItem, dismissItem, clearDismissal } = useItems();
+  const { getFieldsForItem, updateField } = useItemFields();
+  const { rescheduleRemindersForItem } = useReminders();
   const { getHistoryForItem } = useHistory();
 
   const [item, setItem] = useState<Item | null>(null);
   const [fields, setFields] = useState<ItemField[]>([]);
-  const [reminderSummaries, setReminderSummaries] = useState<ReminderSummary[]>([]);
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>([]);
   const [displayStatus, setDisplayStatus] = useState<DisplayStatus>('ok');
   const [isEditing, setIsEditing] = useState(false);
   const [showArchiveConfirm, setShowArchiveConfirm] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [categoryName, setCategoryName] = useState<string>('');
+  const [categoryIcon, setCategoryIcon] = useState<string>('package');
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [renewDialogOpen, setRenewDialogOpen] = useState(false);
+  const [dismissDialogOpen, setDismissDialogOpen] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoadError(null);
     try {
-      const [itemData, fieldsData, reminders, history] = await Promise.all([
+      const [itemData, fieldsData, history] = await Promise.all([
         getItem(id),
         getFieldsForItem(id),
-        getReminderSummary(id),
         getHistoryForItem(id),
       ]);
 
@@ -61,13 +73,13 @@ export default function ItemDetailPage() {
         return;
       }
 
-      // Look up category name for template field options
+      // Look up category name + icon for template field options and hero styling
       const category = await db.categories.get(itemData.categoryId);
       setCategoryName(category?.name ?? '');
+      setCategoryIcon(category?.icon ?? 'package');
 
       setItem(itemData);
       setFields(fieldsData);
-      setReminderSummaries(reminders);
       setHistoryEntries(history);
 
       // Calculate display status (respect dismissal)
@@ -94,7 +106,7 @@ export default function ItemDetailPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, getItem, getFieldsForItem, getReminderSummary, getHistoryForItem, router]);
+  }, [id, getItem, getFieldsForItem, getHistoryForItem, router]);
 
   useEffect(() => {
     void loadData();
@@ -110,11 +122,6 @@ export default function ItemDetailPage() {
       window.scrollTo(0, 0);
     }
   }, [id]);
-
-  const refreshReminders = useCallback(async () => {
-    const summaries = await getReminderSummary(id);
-    setReminderSummaries(summaries);
-  }, [id, getReminderSummary]);
 
   const handleArchive = async () => {
     if (!item) return;
@@ -132,6 +139,77 @@ export default function ItemDetailPage() {
     void loadData();
   };
 
+  // ---------- Mark renewed / Snooze — reuse the dashboard's dialogs ----------
+
+  const earliestDeadline = getEarliestDeadline(
+    fields.filter((f) => f.fieldType === 'date').map((f) => f.fieldValue)
+  );
+  const daysUntilDeadline = earliestDeadline ? daysUntilDate(earliestDeadline) : null;
+
+  const toDashboardItem = (): DashboardItem | null => {
+    if (!item) return null;
+    return {
+      id: item.id,
+      categoryId: item.categoryId,
+      categoryName,
+      categoryIcon,
+      title: item.title,
+      status: item.status,
+      displayStatus,
+      earliestDeadline,
+      daysUntilDeadline,
+      keyDateLabel: null,
+      serviceType: (item.serviceType as ServiceType) ?? null,
+      dismissedUntil: item.dismissedUntil ?? null,
+    };
+  };
+
+  const handleRenewConfirm = async (dashboardItem: DashboardItem, newDate: string) => {
+    const dateFields = fields.filter((f) => f.fieldType === 'date' && f.fieldValue);
+
+    let targetField = dateFields.find((f) => {
+      if (!f.fieldValue) return false;
+      const fieldDate = new Date(f.fieldValue);
+      return earliestDeadline && fieldDate.getTime() === earliestDeadline.getTime();
+    });
+    if (!targetField) {
+      targetField = dateFields[0] ?? fields.find((f) => f.fieldType === 'date');
+    }
+
+    if (targetField) {
+      await updateField(targetField.id, newDate, 'renewal');
+
+      const fieldDateMap = new Map<string, Date>();
+      for (const f of fields) {
+        if (f.fieldType === 'date') {
+          const dateVal = f.id === targetField!.id ? newDate : f.fieldValue;
+          if (dateVal) {
+            const d = new Date(dateVal);
+            if (!isNaN(d.getTime())) fieldDateMap.set(f.fieldKey, d);
+          }
+        }
+      }
+      await rescheduleRemindersForItem(dashboardItem.id, fieldDateMap);
+    }
+
+    await clearDismissal(dashboardItem.id);
+    setRenewDialogOpen(false);
+    await loadData();
+  };
+
+  const handleDismissConfirm = async (dashboardItem: DashboardItem, duration: DismissDuration) => {
+    let dismissedUntil: Date;
+    if (duration === 'indefinite') {
+      dismissedUntil = new Date('2099-12-31');
+    } else {
+      dismissedUntil = new Date();
+      dismissedUntil.setDate(dismissedUntil.getDate() + parseInt(duration, 10));
+    }
+    await dismissItem(dashboardItem.id, dismissedUntil);
+    setDismissDialogOpen(false);
+    await loadData();
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -143,14 +221,21 @@ export default function ItemDetailPage() {
   if (loadError) {
     return (
       <div>
-        <BackButton href="/dashboard" label="Dashboard" />
-        <div className="mt-8 rounded-xl border border-border bg-card p-6 text-center">
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard')}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground shadow-sm"
+          aria-label="Back to dashboard"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <div className="mt-8 rounded-xl bg-card p-6 text-center shadow-sm">
           <h1 className="text-[18px] font-semibold">Couldn&apos;t load this item</h1>
           <p className="mt-2 text-[13px] text-muted-foreground">{loadError}</p>
           <button
             type="button"
             onClick={handleRetry}
-            className="mt-4 min-h-[44px] rounded-xl bg-primary px-5 py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+            className="mt-4 min-h-11 rounded-full bg-primary px-5 py-3 text-[15px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
           >
             Try again
           </button>
@@ -173,25 +258,50 @@ export default function ItemDetailPage() {
     );
   }
 
+  const dateFields = fields.filter((f) => f.fieldType === 'date');
+  const recordFields = fields.filter((f) => f.fieldType !== 'date');
+  const primaryDateField = dateFields.find(
+    (f) => f.fieldValue && earliestDeadline && new Date(f.fieldValue).getTime() === earliestDeadline.getTime()
+  );
+  const ringDays = daysUntilDeadline ?? WINDOW_DAYS;
+  const ringColor = getStatusColor(displayStatus);
+  const ringTint = getStatusTint(displayStatus);
+
   return (
     <div>
-      <BackButton href="/dashboard" label="Dashboard" />
-
       {/* Header */}
-      <div className="mt-4 flex items-start justify-between">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-3">
-            <h1 className="text-[28px] font-bold tracking-tight truncate">
-              {item.title}
-            </h1>
-            <StatusBadge status={displayStatus} />
-          </div>
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => router.push('/dashboard')}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground shadow-sm"
+          aria-label="Back to dashboard"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setIsEditing(true)}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm"
+            aria-label="Edit"
+          >
+            <Pencil size={18} strokeWidth={1.75} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowArchiveConfirm(true)}
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-muted-foreground shadow-sm"
+            aria-label="Archive"
+          >
+            <Archive size={18} strokeWidth={1.75} />
+          </button>
         </div>
       </div>
 
       {/* Dismissed banner */}
       {item.dismissedUntil && item.dismissedUntil > new Date() && (
-        <div className="mt-4 flex items-center gap-3 rounded-xl bg-muted/50 px-4 py-3">
+        <div className="mt-4 flex items-center gap-3 rounded-xl bg-muted px-4 py-3">
           <BellOff size={16} className="shrink-0 text-muted-foreground" />
           <p className="flex-1 text-[13px] text-muted-foreground">
             Snoozed {item.dismissedUntil.getFullYear() >= 2099 ? 'until you act' : `until ${formatDate(item.dismissedUntil)}`}
@@ -202,101 +312,121 @@ export default function ItemDetailPage() {
               await clearDismissal(item.id);
               loadData();
             }}
-            className="min-h-[36px] rounded-lg bg-primary/10 px-3 py-1.5 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/20"
+            className="min-h-9 rounded-full bg-primary/10 px-3 py-1.5 text-[13px] font-semibold text-primary transition-colors hover:bg-primary/20"
           >
             Remove
           </button>
         </div>
       )}
 
+      {/* Hero */}
+      <div
+        className="mt-1 flex items-center gap-5 rounded-xl p-6"
+        style={{ background: ringTint }}
+      >
+        <ProgressRing daysRemaining={ringDays} color={ringColor} trackColor={ringTint} innerColor={ringTint}>
+          <span className="font-heading text-[34px] leading-none font-bold tracking-tight" style={{ color: ringColor }}>
+            {daysUntilDeadline !== null ? Math.abs(daysUntilDeadline) : '—'}
+          </span>
+          <span className="text-[11px] font-bold" style={{ color: ringColor }}>
+            {daysUntilDeadline !== null && daysUntilDeadline < 0 ? 'overdue' : 'days'}
+          </span>
+        </ProgressRing>
+        <div className="min-w-0">
+          <div
+            className="flex items-center gap-1.5 text-[12px] font-bold tracking-wider uppercase"
+            style={{ color: ringColor }}
+          >
+            <CategoryIcon icon={categoryIcon} size={14} />
+            {categoryName}
+          </div>
+          <h1 className="mt-2 truncate font-heading text-[30px] leading-[1.02] font-bold tracking-tight">
+            {item.title}
+          </h1>
+          {earliestDeadline && (
+            <div className="mt-2 text-[13px] font-medium" style={{ color: ringColor }}>
+              {primaryDateField?.label ?? 'Due'} due {formatDate(earliestDeadline)}
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Action Buttons */}
-      <div className="mt-4 flex gap-3">
+      <div className="mt-4 flex gap-2.5">
         <button
           type="button"
-          onClick={() => setIsEditing(true)}
-          className="flex min-h-[44px] items-center gap-2 rounded-xl bg-primary px-5 py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 active:bg-primary/80"
+          onClick={() => setRenewDialogOpen(true)}
+          className="flex min-h-13 flex-1 items-center justify-center gap-2 rounded-full bg-foreground px-5 py-3 text-[15px] font-bold text-background transition-colors hover:opacity-90"
         >
-          <Pencil size={16} />
-          Edit
+          <Check size={18} strokeWidth={2.5} />
+          Mark renewed
         </button>
         <button
           type="button"
-          onClick={() => setShowArchiveConfirm(true)}
-          className="flex min-h-[44px] items-center gap-2 rounded-xl border border-border px-5 py-3 text-[15px] text-muted-foreground transition-colors hover:bg-muted/50 active:bg-muted"
+          onClick={() => setDismissDialogOpen(true)}
+          className="flex min-h-13 items-center justify-center gap-2 rounded-full bg-card px-5 py-3 text-[15px] font-bold text-muted-foreground shadow-sm"
         >
-          <Archive size={16} />
-          Archive
+          Snooze
         </button>
       </div>
 
-      {/* Fields — date fields get an inline reminder button */}
-      <section className="mt-8">
-        <h2 className="text-[18px] font-semibold mb-2">Details</h2>
-        <div className="rounded-xl border border-border bg-card px-4">
-          {fields.map((field) => (
-            <FieldRenderer
-              key={field.id}
-              label={field.label}
-              value={field.fieldValue}
-              fieldType={field.fieldType}
-              fieldKey={field.fieldKey}
-              trailing={
-                field.fieldType === 'date' && item ? (
+      {/* Dates */}
+      {dateFields.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-2 font-heading text-[19px] font-bold tracking-tight">Dates</h2>
+          <div className="overflow-hidden rounded-lg bg-card px-4 shadow-sm">
+            {dateFields.map((field) => (
+              <FieldRenderer
+                key={field.id}
+                label={field.label}
+                value={field.fieldValue}
+                fieldType={field.fieldType}
+                fieldKey={field.fieldKey}
+                trailing={
                   <DateReminderButton
                     itemId={item.id}
                     fieldKey={field.fieldKey}
                     fieldLabel={field.label}
-                    deadlineDate={
-                      field.fieldValue ? new Date(field.fieldValue) : null
-                    }
-                    onChange={refreshReminders}
+                    deadlineDate={field.fieldValue ? new Date(field.fieldValue) : null}
                   />
-                ) : undefined
-              }
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* Reminders Summary */}
-      {reminderSummaries.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-[18px] font-semibold mb-2 flex items-center gap-2">
-            <Bell size={18} />
-            Reminders
-          </h2>
-          <div className="rounded-xl border border-border bg-card px-4 divide-y divide-border/50">
-            {reminderSummaries.map((summary) => {
-              const fieldLabel = fields.find(
-                (f) => f.fieldKey === summary.fieldKey
-              )?.label ?? summary.fieldKey;
-
-              return (
-                <div
-                  key={summary.fieldKey}
-                  className="flex items-center justify-between py-3"
-                >
-                  <span className="text-[13px] text-muted-foreground shrink-0 pr-4">
-                    {fieldLabel}
-                  </span>
-                  {summary.isDisabled ? (
-                    <span className="flex items-center gap-1.5 text-[13px] text-muted-foreground/60">
-                      <BellOff size={12} />
-                      Off
-                    </span>
-                  ) : summary.intervals.length > 0 ? (
-                    <span className="text-[13px] text-foreground text-right">
-                      {formatOffsetsSummary(summary.intervals)}
-                    </span>
-                  ) : (
-                    <span className="text-[13px] text-muted-foreground/60">
-                      None set
-                    </span>
-                  )}
-                </div>
-              );
-            })}
+                }
+              />
+            ))}
           </div>
+        </section>
+      )}
+
+      {/* Record */}
+      {(recordFields.length > 0 || historyEntries.length > 0) && (
+        <section className="mt-6">
+          <h2 className="mb-2 font-heading text-[19px] font-bold tracking-tight">Record</h2>
+          <div className="overflow-hidden rounded-lg bg-card px-4 shadow-sm">
+            {recordFields.map((field) => (
+              <FieldRenderer
+                key={field.id}
+                label={field.label}
+                value={field.fieldValue}
+                fieldType={field.fieldType}
+                fieldKey={field.fieldKey}
+              />
+            ))}
+            <button
+              type="button"
+              onClick={() => setShowHistory((prev) => !prev)}
+              className="flex w-full items-center justify-between gap-3 py-3.5 text-left"
+            >
+              <span className="text-[14px] text-muted-foreground">History</span>
+              <span className="flex items-center gap-1.5 text-[14px] font-bold text-primary">
+                {historyEntries.length} {historyEntries.length === 1 ? 'change' : 'changes'}
+                {showHistory ? <ChevronUp size={15} /> : <ChevronRight size={15} />}
+              </span>
+            </button>
+          </div>
+          {showHistory && (
+            <div className="mt-2">
+              <HistoryTimeline entries={historyEntries} fields={fields} />
+            </div>
+          )}
         </section>
       )}
 
@@ -304,24 +434,6 @@ export default function ItemDetailPage() {
       <p className="mt-6 text-[13px] text-muted-foreground">
         Last updated {formatDate(item.updatedAt)}
       </p>
-
-      {/* History Section — Collapsible */}
-      <section className="mt-6">
-        <button
-          type="button"
-          onClick={() => setShowHistory((prev) => !prev)}
-          className="flex min-h-[44px] w-full items-center gap-2 text-[18px] font-semibold transition-colors"
-        >
-          <History size={18} />
-          History
-          {showHistory ? <ChevronUp size={18} className="ml-auto text-muted-foreground" /> : <ChevronDown size={18} className="ml-auto text-muted-foreground" />}
-        </button>
-        {showHistory && (
-          <div className="mt-2">
-            <HistoryTimeline entries={historyEntries} fields={fields} />
-          </div>
-        )}
-      </section>
 
       {/* Archive Confirmation Dialog */}
       {showArchiveConfirm && (
@@ -331,18 +443,18 @@ export default function ItemDetailPage() {
             <p className="mt-2 text-[15px] text-muted-foreground">
               This item will be moved to your archive. You can find it later in Settings &gt; Archived Items.
             </p>
-            <div className="mt-6 flex gap-3 justify-end">
+            <div className="mt-6 flex justify-end gap-3">
               <button
                 type="button"
                 onClick={() => setShowArchiveConfirm(false)}
-                className="min-h-[44px] rounded-xl px-5 py-3 text-[15px] text-muted-foreground transition-colors hover:bg-muted/50"
+                className="min-h-11 rounded-full px-5 py-3 text-[15px] text-muted-foreground transition-colors hover:bg-muted/50"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleArchive}
-                className="min-h-[44px] rounded-xl bg-destructive px-5 py-3 text-[15px] font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+                className="min-h-11 rounded-full bg-destructive px-5 py-3 text-[15px] font-bold text-destructive-foreground transition-colors hover:bg-destructive/90"
               >
                 Archive
               </button>
@@ -350,6 +462,20 @@ export default function ItemDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Mark renewed / Snooze dialogs — shared with the dashboard's "Needs you" list */}
+      <RenewDialog
+        open={renewDialogOpen}
+        onOpenChange={setRenewDialogOpen}
+        item={toDashboardItem()}
+        onConfirm={handleRenewConfirm}
+      />
+      <DismissDialog
+        open={dismissDialogOpen}
+        onOpenChange={setDismissDialogOpen}
+        item={toDashboardItem()}
+        onConfirm={handleDismissConfirm}
+      />
     </div>
   );
 }

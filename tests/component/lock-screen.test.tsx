@@ -13,7 +13,7 @@ describe('LockScreen', () => {
   it('renders the lock screen with app name', () => {
     render(<LockScreen onUnlock={mockOnUnlock} />);
 
-    expect(screen.getByText('HomeDocket')).toBeInTheDocument();
+    expect(screen.getByText('docket')).toBeInTheDocument();
     expect(screen.getByText('Unlock to view your data')).toBeInTheDocument();
   });
 

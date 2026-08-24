@@ -1,64 +1,50 @@
 /**
- * HomeDocket Logo — Minimal house + shield mark.
- *
- * Inline SVG so it respects currentColor and works in both themes
- * without needing separate asset files for light/dark.
+ * HomeDocket in-app mark — a 24-radius ring with one segment burned off in
+ * the brand color and a solid dot at the centre, matching the Hearth design
+ * direction. Used only inside the app shell (dashboard header, lock screen)
+ * — the marketing site keeps its own full "HomeDocket" branding.
  */
 
 interface LogoIconProps {
-  /** Width & height in pixels. Default 32. */
+  /** Icon size in pixels (square). Default 22. */
   size?: number;
   className?: string;
 }
 
-export function LogoIcon({ size = 32, className }: LogoIconProps) {
+export function LogoIcon({ size = 22, className }: LogoIconProps) {
   return (
     <svg
-      xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 64 64"
-      fill="none"
       width={size}
       height={size}
-      className={className}
+      fill="none"
+      className={`shrink-0 ${className ?? ''}`}
       aria-hidden="true"
     >
-      {/* Shield */}
+      <circle cx="32" cy="32" r="24" className="stroke-logo-track" strokeWidth="9" />
       <path
-        d="M32 6L8 18v16c0 14 9.5 27 24 30 14.5-3 24-16 24-30V18L32 6z"
-        fill="currentColor"
-        fillOpacity="0.10"
-        stroke="currentColor"
-        strokeWidth="2.5"
-        strokeLinejoin="round"
-      />
-      {/* House */}
-      <g
-        stroke="currentColor"
-        strokeWidth="2.5"
+        d="M32 8a24 24 0 0 1 20.78 12"
+        className="stroke-primary"
+        strokeWidth="9"
         strokeLinecap="round"
-        strokeLinejoin="round"
-        fill="none"
-      >
-        <path d="M19 36l13-11 13 11" />
-        <path d="M22 34.5v12h20v-12" />
-        <rect x="28" y="40" width="8" height="6.5" rx="1" />
-      </g>
+      />
+      <circle cx="32" cy="32" r="7" className="fill-primary" />
     </svg>
   );
 }
 
 interface LogoWordmarkProps {
-  /** Icon size in pixels. Default 28. */
+  /** Icon size in pixels. Default 22. */
   iconSize?: number;
   className?: string;
 }
 
-export function LogoWordmark({ iconSize = 28, className }: LogoWordmarkProps) {
+export function LogoWordmark({ iconSize = 22, className }: LogoWordmarkProps) {
   return (
-    <div className={`flex items-center gap-2.5 ${className ?? ''}`}>
-      <LogoIcon size={iconSize} className="text-primary" />
-      <span className="text-[20px] font-bold tracking-tight text-foreground">
-        HomeDocket
+    <div className={`flex items-center gap-2 ${className ?? ''}`}>
+      <LogoIcon size={iconSize} />
+      <span className="font-heading text-[21px] font-bold tracking-tight text-foreground">
+        docket
       </span>
     </div>
   );

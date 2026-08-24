@@ -47,6 +47,13 @@ export function formatDate(date: Date): string {
 }
 
 /**
+ * Format a date without the year: "12 Jun"
+ */
+export function formatDateShort(date: Date): string {
+  return format(date, 'd MMM');
+}
+
+/**
  * Check if a date is in the past (expired).
  */
 export function isExpired(date: Date): boolean {

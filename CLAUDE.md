@@ -65,11 +65,11 @@ Today's date is 2026-03-30.
 
 ## Design System
 
-- **Theme:** iOS-inspired tweakcn theme. Primary: `rgb(0, 115, 255)`. Font: Inter. Radius: 0.85rem. Full dark mode.
-- **Theme source file:** `sample-css.tsx` (CSS variables for globals.css)
-- **Status tokens:** `--status-ok` (green), `--status-warning` (amber), `--status-urgent` (red), `--status-expired` (dark red), `--status-neutral` (grey)
-- **Status communication:** Triple-channel — color + position (urgent sorts to top) + typography weight (urgent = semibold). Never rely on color alone.
-- **Typography:** 4-step scale — Display (28px/bold), Title (18px/semibold), Body (15px/regular), Caption (13px/regular)
+- **Theme:** "Hearth" — warm paper/clay palette (`#F7F1E8` paper / `#1B1512` dark). Primary: `rgb(179, 49, 27)` terracotta (light) / `rgb(242, 96, 60)` coral (dark). Fonts: DM Sans (body, `--font-sans`), Bricolage Grotesque (headings/numbers, `--font-heading`, applied via the `font-heading` Tailwind utility). Radius: 1.375rem (22px cards, 26px hero cards). Pill-shaped buttons and nav throughout. Full dark mode.
+- **Theme source file:** `src/app/globals.css` (`sample-css.tsx` at the repo root is a stale pre-redesign reference and isn't imported anywhere)
+- **Status tokens:** `--status-ok` (green), `--status-warning`/`--status-urgent` (same amber — this direction only escalates color at the `expired` tier), `--status-expired` (primary red), `--status-neutral` (warm grey). Pale tint variants (`--status-warning-tint`, `--status-expired-tint`) back hero/badge fills.
+- **Status communication:** Triple-channel — color + position (urgent sorts to top, dashboard splits into "Needs you" vs "All settled") + typography weight. Never rely on color alone.
+- **Typography:** Bricolage Grotesque for headings and numerals — hero stat 76px, screen titles 28–40px, card/item titles 17–19px, all bold/semibold. DM Sans for body/UI text — 15px body, 12–13px caption/label, both regular–bold depending on emphasis.
 - **Spacing:** 4px base grid. Use 4, 8, 16, 24, 32, 48.
 - **Touch targets:** Minimum 44x44pt everywhere. No exceptions.
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateStatus, getStatusPriority, getStatusColor, getStatusFontWeight } from '@/lib/status';
+import { calculateStatus, getStatusPriority, getStatusColor, getStatusFontWeight, getStatusTint } from '@/lib/status';
 
 describe('calculateStatus', () => {
   it('returns ok for null (no deadline)', () => {
@@ -71,5 +71,20 @@ describe('getStatusFontWeight', () => {
   it('returns font-normal for ok and warning', () => {
     expect(getStatusFontWeight('ok')).toBe('font-normal');
     expect(getStatusFontWeight('warning')).toBe('font-normal');
+  });
+});
+
+describe('getStatusTint', () => {
+  it('falls back to the neutral muted surface for ok', () => {
+    expect(getStatusTint('ok')).toBe('var(--muted)');
+  });
+
+  it('returns the shared warning/urgent tint for both tiers', () => {
+    expect(getStatusTint('warning')).toBe('var(--status-warning-tint)');
+    expect(getStatusTint('urgent')).toBe('var(--status-urgent-tint)');
+  });
+
+  it('returns a distinct tint for expired', () => {
+    expect(getStatusTint('expired')).toBe('var(--status-expired-tint)');
   });
 });

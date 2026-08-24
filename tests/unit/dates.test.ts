@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { format } from 'date-fns';
-import { daysUntilDate, formatCountdown, formatDate, isExpired, getEarliestDeadline, getNextBillingDate, advanceBillingDate } from '@/lib/dates';
+import { daysUntilDate, formatCountdown, formatDate, formatDateShort, isExpired, getEarliestDeadline, getNextBillingDate, advanceBillingDate } from '@/lib/dates';
 
 /** Format a date as local YYYY-MM-DD (avoids UTC timezone shift in toISOString) */
 function toLocalDate(date: Date): string {
@@ -78,6 +78,20 @@ describe('formatDate', () => {
 
   it('formats date with single-digit day', () => {
     expect(formatDate(new Date('2026-01-05'))).toBe('5 Jan 2026');
+  });
+});
+
+describe('formatDateShort', () => {
+  it('formats date without the year', () => {
+    expect(formatDateShort(new Date('2026-06-12'))).toBe('12 Jun');
+  });
+
+  it('formats date with single-digit day', () => {
+    expect(formatDateShort(new Date('2026-01-05'))).toBe('5 Jan');
+  });
+
+  it('formats dates from different years the same way', () => {
+    expect(formatDateShort(new Date('2027-08-26'))).toBe('26 Aug');
   });
 });
 

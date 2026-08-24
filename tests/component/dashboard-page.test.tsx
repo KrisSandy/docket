@@ -61,7 +61,7 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
 
     expect(
-      await screen.findByText(/Track your NCT, insurance, and utility deadlines/)
+      await screen.findByText(/Nothing is due\./)
     ).toBeInTheDocument();
   });
 
@@ -95,7 +95,7 @@ describe('DashboardPage', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('shows snackbar when urgent items exist', async () => {
+  it('lists urgent items under "Needs you" with a day count', async () => {
     mockGetDashboardData.mockResolvedValue({
       items: [
         {
@@ -136,12 +136,16 @@ describe('DashboardPage', () => {
 
     render(<DashboardPage />);
 
-    // DashboardMetrics should show the attention count
-    const needAction = await screen.findByText('Need action');
-    expect(needAction).toBeInTheDocument();
-    // The attention count value is a sibling within the same metric card
-    const metricCard = needAction.closest('[class*="rounded-xl"]')!;
-    expect(metricCard).toHaveTextContent('1');
+    // "Needs you" section header shows the attention count
+    const heading = await screen.findByText('Needs you');
+    expect(heading).toBeInTheDocument();
+    const section = heading.closest('section')!;
+    expect(section).toHaveTextContent('NCT Renewal');
+    expect(section).toHaveTextContent('3');
+
+    // The ok-status item sits under "All settled" instead
+    expect(screen.getByText('All settled')).toBeInTheDocument();
+    expect(screen.getByText('Home Insurance')).toBeInTheDocument();
   });
 
   it('renders items sorted by status priority', async () => {
@@ -205,7 +209,7 @@ describe('DashboardPage', () => {
     expect(screen.getByText('OK Item')).toBeInTheDocument();
   });
 
-  it('navigates to add page when FAB is clicked', async () => {
+  it('navigates to settings when the header settings button is clicked', async () => {
     const user = userEvent.setup();
     mockGetDashboardData.mockResolvedValue({
       items: [
@@ -231,9 +235,8 @@ describe('DashboardPage', () => {
     render(<DashboardPage />);
     await screen.findByText('Test');
 
-    const fab = screen.getByLabelText('Add new item');
-    await user.click(fab);
-    expect(pushMock).toHaveBeenCalledWith('/add');
+    await user.click(screen.getByLabelText('Settings'));
+    expect(pushMock).toHaveBeenCalledWith('/settings');
   });
 
   it('navigates to item detail when item clicked', async () => {

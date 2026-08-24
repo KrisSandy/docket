@@ -108,7 +108,7 @@ export function DateReminderButton({
   );
 
   if (loading) {
-    return <div className="h-7 w-7 animate-pulse rounded-full bg-muted" />;
+    return <div className="h-8.5 w-16 animate-pulse rounded-full bg-muted" />;
   }
 
   // Build the tooltip / aria-label
@@ -125,14 +125,23 @@ export function DateReminderButton({
         onClick={() => setShowSheet(true)}
         aria-label={ariaLabel}
         title={ariaLabel}
-        className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-muted/50 active:bg-muted"
+        className="flex h-8.5 shrink-0 items-center gap-1.5 rounded-full bg-muted px-3 text-[12px] font-bold text-muted-foreground transition-colors hover:bg-muted/70"
       >
         {isDisabled ? (
-          <BellOff size={14} className="text-muted-foreground/50" />
+          <>
+            <BellOff size={13} />
+            Off
+          </>
         ) : activeIntervals.length > 0 ? (
-          <Bell size={14} className="text-primary" />
+          <>
+            <Bell size={13} />
+            {activeIntervals.join(' · ')}
+          </>
         ) : (
-          <Plus size={14} className="text-muted-foreground" />
+          <>
+            <Plus size={13} />
+            Add
+          </>
         )}
       </button>
 

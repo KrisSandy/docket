@@ -42,6 +42,31 @@ export function isNativePlatform(): boolean {
 }
 
 /**
+ * Detects a Capacitor native WebView by origin alone, with no dependency on
+ * `window.Capacitor` having attached yet.
+ *
+ * Capacitor serves this app from a `localhost` origin on a non-`http:`
+ * scheme — `https://localhost` on Android (`androidScheme: 'https'` in
+ * `capacitor.config.ts`), `capacitor://localhost` by default on iOS. That's
+ * available synchronously the instant any script runs, unlike
+ * `isNativePlatform()`, which reads `window.Capacitor` and can observe it
+ * *before* Capacitor's native bridge has attached — a real, reproduced race
+ * (see `getServiceWorkerCleanupScript`).
+ *
+ * `npm run dev`'s Next.js server is `http://localhost:PORT` (`http:`, with
+ * a port) and the deployed web app is a real domain — neither is confused
+ * for native by this check.
+ *
+ * Used only for the service-worker guard, where a false negative is
+ * catastrophic (a stray SW causes an infinite reload loop on Android).
+ * Every other native check in the app still uses `isNativePlatform()`.
+ */
+export function isCapacitorOrigin(): boolean {
+  if (typeof window === 'undefined') return false;
+  return window.location.hostname === 'localhost' && window.location.protocol !== 'http:';
+}
+
+/**
  * Synchronous read of the has-seen-marketing flag. Safe to call during
  * SSR (returns false) and cheap enough to call on every render — no
  * IndexedDB round-trip. Returns false on any storage error so the
@@ -82,4 +107,44 @@ export function clearMarketingSeen(): void {
   } catch {
     // Best effort — see markMarketingSeen.
   }
+}
+
+/**
+ * Returns the JS source for the pre-hydration inline `<script>` embedded
+ * in `(marketing)/page.tsx`. The browser executes this synchronously
+ * while parsing the initial HTML — before React loads or hydrates — so
+ * a native "seen" launch redirects before any marketing content paints,
+ * instead of relying solely on `MarketingGate`'s post-hydration effect.
+ *
+ * Mirrors `isNativePlatform` + `hasSeenMarketing` exactly, but as a
+ * standalone string since it must run outside the React/module graph.
+ */
+export function getMarketingRedirectScript(): string {
+  const key = JSON.stringify(HAS_SEEN_MARKETING_KEY);
+  return `(function(){try{var c=window.Capacitor;var n=c&&typeof c.isNativePlatform==='function'&&c.isNativePlatform();if(n&&window.localStorage.getItem(${key})==='true'){window.location.replace('/dashboard');}}catch(e){}})();`;
+}
+
+/**
+ * Returns the JS source for a pre-hydration `<script>` (embedded in the
+ * root layout's `<head>`, so it runs on every page) that unregisters any
+ * active service worker when running natively.
+ *
+ * Deliberately checks the origin directly (see `isCapacitorOrigin`) rather
+ * than `window.Capacitor` — an earlier version used the bridge check here
+ * and a stray SW still got through in production, because this script can
+ * run before Capacitor's native bridge attaches to `window`. The origin
+ * check has no such gap: `location.hostname`/`location.protocol` are set
+ * before any script executes at all.
+ *
+ * `ServiceWorkerRegister`'s React-level cleanup (a `useEffect`) is too
+ * late to recover a device already stuck in the reload loop this guards
+ * against: a stray SW's navigate-mode fetch handling can retrigger the
+ * WebView's navigation before React ever finishes hydrating, so the
+ * `useEffect` never gets a chance to run. This script runs during HTML
+ * parsing — before any JS bundle loads — on *every* reload of the loop,
+ * giving the async `unregister()` call many chances to win the race
+ * instead of just one that arrives too late.
+ */
+export function getServiceWorkerCleanupScript(): string {
+  return `(function(){try{if(location.hostname==='localhost'&&location.protocol!=='http:'&&navigator.serviceWorker){navigator.serviceWorker.getRegistrations().then(function(rs){rs.forEach(function(r){r.unregister();});});}}catch(e){}})();`;
 }

@@ -2,11 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, ChevronRight } from 'lucide-react';
+import { ChevronLeft, Plus } from 'lucide-react';
 import { db } from '@/db/database';
 import type { Category } from '@/db/schema';
-import { BackButton } from '@/components/layout/back-button';
-import { CategoryIcon } from '@/components/ui/category-icon';
+import { CategoryIcon, CATEGORY_ACCENTS, DEFAULT_ACCENT } from '@/components/ui/category-icon';
+
+/** Short blurbs for the default categories, matching the Hearth design's category grid. */
+const CATEGORY_SUBTITLES: Record<string, string> = {
+  Vehicle: 'NCT, tax, insurance',
+  Utilities: '6 service types',
+  Housing: 'Mortgage, LPT, lease',
+  Insurance: 'Home, life, pet',
+};
 
 export default function AddItemPage() {
   const router = useRouter();
@@ -73,48 +80,63 @@ export default function AddItemPage() {
 
   return (
     <div>
-      <BackButton href="/dashboard" label="Dashboard" />
-
-      <h1 className="mt-4 text-[28px] font-bold tracking-tight">
-        Add Item
-      </h1>
-      <p className="mt-1 text-[15px] text-muted-foreground">
-        Select a category to get started.
-      </p>
-
-      <div className="mt-6 space-y-2">
-        {categories.map((category) => (
-          <button
-            key={category.id}
-            type="button"
-            onClick={() => handleCategorySelect(category)}
-            className="flex w-full items-center gap-4 rounded-xl border border-border bg-card px-4 py-4 min-h-[44px] text-left transition-colors hover:bg-muted/30 active:bg-muted/50"
-          >
-            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <CategoryIcon icon={category.icon} size={24} />
-            </div>
-            <div className="flex-1 min-w-0">
-              <span className="text-[15px] font-semibold">{category.name}</span>
-              {!category.isDefault && (
-                <span className="ml-2 text-[11px] text-muted-foreground bg-muted/50 rounded px-1.5 py-0.5">Custom</span>
-              )}
-            </div>
-            <ChevronRight size={20} className="text-muted-foreground" />
-          </button>
-        ))}
-
-        {/* Create Custom Category */}
+      <div className="flex items-center justify-between">
         <button
           type="button"
-          onClick={() => setShowCustomDialog(true)}
-          className="flex w-full items-center gap-4 rounded-xl border border-dashed border-border bg-card/50 px-4 py-4 min-h-[44px] text-left transition-colors hover:bg-muted/30 active:bg-muted/50"
+          onClick={() => router.push('/dashboard')}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground shadow-sm"
+          aria-label="Back to dashboard"
         >
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
-            <Plus size={24} />
-          </div>
-          <span className="flex-1 text-[15px] font-medium text-muted-foreground">Create Custom Category</span>
+          <ChevronLeft size={20} />
         </button>
+        <span className="text-[13px] font-bold text-muted-foreground">Step 1 of 2</span>
       </div>
+
+      <h1 className="mt-4 font-heading text-[34px] leading-[1.02] font-bold tracking-tight">
+        What are we
+        <br />
+        keeping an eye on?
+      </h1>
+
+      <div className="mt-5.5 grid grid-cols-2 gap-3">
+        {categories.map((category) => {
+          const accent = CATEGORY_ACCENTS[category.icon] ?? DEFAULT_ACCENT;
+          return (
+            <button
+              key={category.id}
+              type="button"
+              onClick={() => handleCategorySelect(category)}
+              className="flex min-h-37.5 flex-col justify-between rounded-xl bg-card p-5 text-left shadow-sm"
+            >
+              <span
+                className={`flex h-12 w-12 items-center justify-center rounded-full ${accent.bg} ${accent.text}`}
+              >
+                <CategoryIcon icon={category.icon} size={23} />
+              </span>
+              <span>
+                <span className="block font-heading text-[19px] font-bold tracking-tight">
+                  {category.name}
+                </span>
+                <span className="mt-0.5 block text-[12px] text-muted-foreground">
+                  {CATEGORY_SUBTITLES[category.name] ?? (category.isDefault ? '' : 'Custom category')}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Create Custom Category */}
+      <button
+        type="button"
+        onClick={() => setShowCustomDialog(true)}
+        className="mt-3 flex w-full items-center gap-3.5 rounded-xl border-1.5 border-dashed border-border p-4.5 text-left text-muted-foreground"
+      >
+        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-muted">
+          <Plus size={21} strokeWidth={2} />
+        </span>
+        <span className="text-[15px] font-bold">Something else</span>
+      </button>
 
       {/* Custom Category Dialog */}
       {showCustomDialog && (
@@ -175,14 +197,14 @@ export default function AddItemPage() {
                   setCustomIcon('package');
                   setCustomError('');
                 }}
-                className="min-h-[44px] rounded-xl px-5 py-3 text-[15px] text-muted-foreground transition-colors hover:bg-muted/50"
+                className="min-h-11 rounded-full px-5 py-3 text-[15px] text-muted-foreground transition-colors hover:bg-muted/50"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleCreateCustom}
-                className="min-h-[44px] rounded-xl bg-primary px-5 py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                className="min-h-11 rounded-full bg-primary px-5 py-3 text-[15px] font-bold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Create
               </button>

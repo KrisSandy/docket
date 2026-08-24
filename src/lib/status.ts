@@ -46,3 +46,18 @@ export function getStatusColor(status: DisplayStatus): string {
 export function getStatusFontWeight(status: DisplayStatus): string {
   return status === 'urgent' || status === 'expired' ? 'font-semibold' : 'font-normal';
 }
+
+/**
+ * Get the CSS variable name for a status's pale tint background (badges, hero
+ * cards). Falls back to the neutral `--muted` surface for 'ok', which has no
+ * dedicated tint in the design.
+ */
+export function getStatusTint(status: DisplayStatus): string {
+  if (status === 'ok') return 'var(--muted)';
+  const tints: Record<Exclude<DisplayStatus, 'ok'>, string> = {
+    warning: 'var(--status-warning-tint)',
+    urgent: 'var(--status-urgent-tint)',
+    expired: 'var(--status-expired-tint)',
+  };
+  return tints[status];
+}

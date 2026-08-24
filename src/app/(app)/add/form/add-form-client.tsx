@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Save } from 'lucide-react';
+import { ChevronLeft } from 'lucide-react';
 import { useItems } from '@/hooks/use-items';
 import { useReminders } from '@/hooks/use-reminders';
-import { BackButton } from '@/components/layout/back-button';
 import { FieldEditor } from '@/components/items/field-editor';
 import { ServiceTypePicker } from '@/components/items/service-type-picker';
+import { CategoryIcon, CATEGORY_ACCENTS, DEFAULT_ACCENT } from '@/components/ui/category-icon';
 import { getTemplateFields, hasServiceTypes, getServiceTypes } from '@/lib/templates';
 import { getNextBillingDate } from '@/lib/dates';
+import { db } from '@/db/database';
 import type { TemplateField, FieldType, ServiceType, BillingFrequency } from '@/types';
 import { BILLING_FREQUENCY_OPTIONS } from '@/types';
 
@@ -33,6 +34,12 @@ export default function AddItemFormPage() {
 
   const categoryId = searchParams.get('categoryId') ?? '';
   const categoryName = searchParams.get('name') ?? '';
+  const [categoryIcon, setCategoryIcon] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    if (!categoryId) return;
+    db.categories.get(categoryId).then((category) => setCategoryIcon(category?.icon));
+  }, [categoryId]);
 
   const { createItem } = useItems();
   const { createDefaultReminders } = useReminders();
@@ -182,7 +189,6 @@ export default function AddItemFormPage() {
       });
 
       // Update fields with entered values (including computed ones)
-      const { db } = await import('@/db/database');
       for (const field of finalStates) {
         if (field.value.trim()) {
           const dbField = await db.itemFields
@@ -208,13 +214,57 @@ export default function AddItemFormPage() {
     }
   };
 
+  const visibleFields = fieldStates.filter((field) => !field.computed);
+  const dateFields = visibleFields.filter((field) => field.fieldType === 'date');
+  const otherFields = visibleFields.filter((field) => field.fieldType !== 'date');
+  const filledOptionalCount = visibleFields.filter((f) => f.value.trim() === '').length;
+  const accent = categoryIcon ? (CATEGORY_ACCENTS[categoryIcon] ?? DEFAULT_ACCENT) : DEFAULT_ACCENT;
+
   return (
     <div>
-      <BackButton href="/add" label="Categories" />
+      <div className="flex items-center justify-between">
+        <button
+          type="button"
+          onClick={() => router.push('/add')}
+          className="flex h-11 w-11 items-center justify-center rounded-full bg-card text-foreground shadow-sm"
+          aria-label="Back to categories"
+        >
+          <ChevronLeft size={20} />
+        </button>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={isSaving}
+          className="flex h-11 items-center justify-center rounded-full bg-foreground px-5 text-[14px] font-bold text-background disabled:opacity-50"
+        >
+          {isSaving ? 'Saving...' : 'Save'}
+        </button>
+      </div>
 
-      <h1 className="mt-4 text-[28px] font-bold tracking-tight">
-        New {categoryName}
-      </h1>
+      <div className="mt-4">
+        <span
+          className={`inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[12px] font-bold ${accent.bg} ${accent.text}`}
+        >
+          {categoryIcon && <CategoryIcon icon={categoryIcon} size={14} />}
+          {categoryName} · step 2 of 2
+        </span>
+        <input
+          id="item-title"
+          type="text"
+          value={title}
+          onChange={(e) => {
+            setTitle(e.target.value);
+            setTitleError('');
+          }}
+          className="mt-3.5 w-full border-0 border-b-2 border-foreground bg-transparent pb-2.5 font-heading text-[30px] font-bold tracking-tight text-foreground outline-none"
+          placeholder={`e.g., My ${categoryName}`}
+          autoFocus={!categoryHasServiceTypes}
+        />
+        <p className="mt-2 text-[13px] text-muted-foreground">Give it a name you&apos;ll recognise</p>
+        {titleError && (
+          <p className="mt-1 text-[13px] text-destructive">{titleError}</p>
+        )}
+      </div>
 
       {/* Service Type Picker (for Utilities) */}
       {categoryHasServiceTypes && (
@@ -230,36 +280,12 @@ export default function AddItemFormPage() {
         </div>
       )}
 
-      {/* Show form only after service type is selected (if applicable) */}
+      {/* Show fields only after service type is selected (if applicable) */}
       {(!categoryHasServiceTypes || selectedServiceType) && (
         <>
-          {/* Title Field */}
-          <div className="mt-6">
-            <label htmlFor="item-title" className="mb-2 block text-[13px] text-muted-foreground">
-              Title <span className="text-destructive">*</span>
-            </label>
-            <input
-              id="item-title"
-              type="text"
-              value={title}
-              onChange={(e) => {
-                setTitle(e.target.value);
-                setTitleError('');
-              }}
-              className="w-full rounded-lg border border-border bg-background px-4 py-3 text-[15px] text-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 min-h-[44px]"
-              placeholder={`e.g., My ${categoryName}`}
-              autoFocus={!categoryHasServiceTypes}
-            />
-            {titleError && (
-              <p className="mt-1 text-[13px] text-destructive">{titleError}</p>
-            )}
-          </div>
-
-          {/* Template Fields — computed fields are hidden (auto-filled on save) */}
-          <div className="mt-6 rounded-xl border border-border bg-card px-4">
-            {fieldStates
-              .filter((field) => !field.computed)
-              .map((field) => (
+          {otherFields.length > 0 && (
+            <div className="mt-6 rounded-xl bg-card px-4 shadow-sm">
+              {otherFields.map((field) => (
                 <FieldEditor
                   key={field.fieldKey}
                   label={field.label}
@@ -275,20 +301,47 @@ export default function AddItemFormPage() {
                   futureOnly={field.futureOnly}
                 />
               ))}
-          </div>
+            </div>
+          )}
 
-          {/* Save Button */}
-          <div className="mt-8 flex gap-3">
-            <button
-              type="button"
-              onClick={handleSave}
-              disabled={isSaving}
-              className="flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-[15px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
-            >
-              <Save size={16} />
-              {isSaving ? 'Saving...' : 'Save Item'}
-            </button>
-          </div>
+          {dateFields.length > 0 && (
+            <div className="mt-6">
+              <h2 className="font-heading text-[19px] font-bold tracking-tight">Dates to watch</h2>
+              <p className="mt-1 text-[13px] text-muted-foreground">
+                Every date you add gets reminders 30, 7 and 1 days before.
+              </p>
+              <div className="mt-2.5 rounded-xl bg-card px-4 shadow-sm">
+                {dateFields.map((field, index) => (
+                  <div
+                    key={field.fieldKey}
+                    className={
+                      index === 0
+                        ? `-mx-4 bg-status-warning-tint px-4 ${dateFields.length === 1 ? 'rounded-xl' : 'rounded-t-xl'}`
+                        : ''
+                    }
+                  >
+                    <FieldEditor
+                      label={field.label}
+                      value={field.value}
+                      fieldType={field.fieldType}
+                      onChange={(value) => handleFieldChange(field.fieldKey, value)}
+                      error={fieldErrors[field.fieldKey]}
+                      helperText={field.helperText}
+                      placeholder={field.placeholder}
+                      futureOnly={field.futureOnly}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {filledOptionalCount > 0 && (
+            <p className="mt-4 text-[13px] text-muted-foreground">
+              {filledOptionalCount} more {filledOptionalCount === 1 ? 'field' : 'fields'}, all optional — you can fill
+              {filledOptionalCount === 1 ? ' it' : ' them'} in later.
+            </p>
+          )}
         </>
       )}
 
@@ -304,14 +357,14 @@ export default function AddItemFormPage() {
               <button
                 type="button"
                 onClick={() => setShowDiscardConfirm(false)}
-                className="min-h-[44px] rounded-xl px-5 py-3 text-[15px] text-muted-foreground transition-colors hover:bg-muted/50"
+                className="min-h-11 rounded-full px-5 py-3 text-[15px] text-muted-foreground transition-colors hover:bg-muted/50"
               >
                 Keep Editing
               </button>
               <button
                 type="button"
                 onClick={() => router.push('/add')}
-                className="min-h-[44px] rounded-xl bg-destructive px-5 py-3 text-[15px] font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+                className="min-h-11 rounded-full bg-destructive px-5 py-3 text-[15px] font-bold text-destructive-foreground transition-colors hover:bg-destructive/90"
               >
                 Discard
               </button>

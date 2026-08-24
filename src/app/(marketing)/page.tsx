@@ -13,6 +13,7 @@ import {
   Smartphone,
 } from 'lucide-react';
 import { MarketingGate } from '@/components/marketing/marketing-gate';
+import { MarketingRedirectScript } from '@/components/marketing/marketing-redirect-script';
 import { OpenAppButton } from '@/components/marketing/open-app-button';
 
 export const metadata: Metadata = {
@@ -116,6 +117,7 @@ const steps = [
 export default function LandingPage() {
   return (
     <MarketingGate>
+      <MarketingRedirectScript />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
